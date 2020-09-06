@@ -1,6 +1,8 @@
 ---
 title: "Joshua Burrows Project 1"
-output: rmarkdown::github_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
