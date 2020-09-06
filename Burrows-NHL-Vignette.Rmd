@@ -3,9 +3,12 @@ title: "Joshua Burrows Project 1"
 output: rmarkdown::github_document
 ---
 
-```{r setup, include=FALSE}
+```{r include=FALSE}
 library(knitr)
+library(rmarkdown)
 opts_chunk$set(echo = TRUE)
 ```
 
 # Title 
+
+Hi
