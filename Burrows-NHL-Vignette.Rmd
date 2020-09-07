@@ -4,11 +4,128 @@ output: rmarkdown::github_document
 ---
 
 ```{r include=FALSE}
+library(assertthat)
 library(knitr)
+library(tidyverse)
 library(rmarkdown)
+library(httr)
+library(jsonlite)
 opts_chunk$set(echo = TRUE)
 ```
 
 # Title 
 
 Hi
+
+```{r}
+recBaseURL <- "https://records.nhl.com/site/api"
+
+# Return the requested table
+getTable <- function(table){
+  
+  if(!is.string(table)){
+    return(warning("Input must be a character string")) 
+  }
+  
+  recFullURL <- paste0(recBaseURL, "/", table) 
+  info <- recFullURL %>% GET() %>% content("text") %>% fromJSON(flatten = "TRUE")
+  info <- info[[1]] %>% as_tibble()
+  
+  return(info)
+}
+
+# filter info from requested table by team name or team Id
+filterTable <- function(table, nameName, teamIdName, name, idNum){
+  
+  if(!is.null(name)){
+    if(!is.null(idNum)){
+      return(warning("Search by either name or idNum, not both"))
+    } else if(name == "all"){ 
+        return(table)
+      } else{
+          team <- table %>% filter(table[[nameName]] == name)
+          if(length(team[[nameName]]) == 0){
+            return(warning("name should be a team name or all"))
+          } else{
+              return(team)
+            }
+        }
+  } else if(!is.null(idNum)){
+      if(idNum == "all"){
+        return(table)
+      } else{
+          team <- table %>% filter(table[[teamIdName]] == idNum)
+          if(length(team[[teamIdName]]) == 0){ 
+            return(warning("Not a valid team idNum"))
+          } else{
+              return(team)
+          } 
+      }
+    } 
+  
+  # if both arguments are null, return full table 
+  return(table) 
+  
+}
+
+# Get franchise info by name or teamId
+franchise <- function(name = NULL, idNum = NULL){
+
+  franchises <- getTable("franchise") 
+  
+  filterTable(franchises, nameName = "teamCommonName", teamIdName = "id", name, idNum) 
+  
+}
+
+franchise(idNum = 1)
+
+# Return franchise team totals
+teamTotals <- function(name = NULL, idNum = NULL){
+  
+  teamTotals <- getTable("franchise-team-totals") 
+  
+  filterTable(teamTotals, nameName = "teamName", teamIdName = "teamId", name, idNum) 
+  
+} 
+
+teamTotals(name = "all")
+
+# Return season records for a given franchise
+season <- function(name = NULL, idNum = NULL){
+  
+  seasonRecords <- getTable("franchise-season-records") 
+  
+  filterTable(seasonRecords, nameName = "franchiseName", teamIdName = "franchiseId", name, idNum) 
+} 
+
+# Return franchise goalie records 
+goalie <- function(name = NULL, idNum = NULL){
+  
+  goalieRecords <- getTable("franchise-goalie-records")
+  
+  filterTable(goalieRecords, nameName = "franchiseName", teamIdName = "franchiseId", name, idNum)
+  
+} 
+
+skater <- function(name = NULL, idNum = NULL){
+  
+  skaterRecords <- getTable("franchise-skater-records") 
+  
+  filterTable(skaterRecords, nameName = "franchiseName", teamIdName = "franchiseId", name, idNum) 
+  
+}
+
+skater(idNum = "all")
+```
+
+
+
+
+
+
+
+
+
+
+
+
