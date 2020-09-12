@@ -67,7 +67,9 @@ filterTable <- function(table, nameName, teamIdName, name, idNum){
   return(table) 
   
 }
+```
 
+```{r}
 # Get franchise info by name or teamId
 franchise <- function(name = NULL, idNum = NULL){
 
@@ -77,19 +79,24 @@ franchise <- function(name = NULL, idNum = NULL){
   
 }
 
-franchise(idNum = 1)
+franchise(name = "Canadiens")
+```
 
+```{r}
 # Return franchise team totals
 teamTotals <- function(name = NULL, idNum = NULL){
   
   teamTotals <- getTable("franchise-team-totals") 
   
-  filterTable(teamTotals, nameName = "teamName", teamIdName = "teamId", name, idNum) 
+  filterTable(teamTotals, nameName = "teamName", teamIdName = "franchiseId", name, idNum) 
   
 } 
 
-teamTotals(name = "all")
+teamTotals(name = "Montréal Canadiens")
+```
 
+
+```{r}
 # Return season records for a given franchise
 season <- function(name = NULL, idNum = NULL){
   
@@ -98,6 +105,15 @@ season <- function(name = NULL, idNum = NULL){
   filterTable(seasonRecords, nameName = "franchiseName", teamIdName = "franchiseId", name, idNum) 
 } 
 
+season(name = "Montréal Canadiens")
+
+# Test 
+test <- GET("https://records.nhl.com/site/api/franchise-season-records?cayenneExp=franchiseId=1") %>% content("text") %>% fromJSON(flatten = TRUE) 
+test
+```
+
+
+```{r}
 # Return franchise goalie records 
 goalie <- function(name = NULL, idNum = NULL){
   
@@ -107,6 +123,11 @@ goalie <- function(name = NULL, idNum = NULL){
   
 } 
 
+goalie(name = "Montréal Canadiens")
+```
+
+
+```{r}
 skater <- function(name = NULL, idNum = NULL){
   
   skaterRecords <- getTable("franchise-skater-records") 
@@ -115,8 +136,246 @@ skater <- function(name = NULL, idNum = NULL){
   
 }
 
-skater(idNum = "all")
+skater(name = "Montréal Canadiens")
 ```
+
+
+```{r getStatsTable}
+statsBaseURL <- "https://statsapi.web.nhl.com/api/v1/teams"
+
+getStatsTable <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
+  
+  if(is.null(modifier)){
+    base <- statsBaseURL %>% GET() %>% content("text") %>% fromJSON(flatten = TRUE)
+  base <- base[[2]] %>% as_tibble()
+  return(base)
+  }
+    
+  if(modifier == "team.roster"){
+    mod = "?expand=team.roster"
+  } 
+  
+  if(modifier == "person.names"){
+    mod = "?expand=person.names" 
+  }
+  
+  if(modifier == "team.schedule.next"){
+    mod = "?expand=team.schedule.next"
+  } 
+  
+  if(modifier == "team.schedule.previous"){
+    mod = "?expand=team.schedule.previous"
+  }
+  
+  if(modifier == "team.stats"){
+    mod = "?expand=team.stats"
+  }
+  
+  if(modifier == "team.roster&season"){
+    mod = paste0("?expand=team.roster&season=", seasonId)
+  }
+  
+  if(modifier == "teamId"){
+    mod = paste0("?teamId=", teamIds)
+  }
+  
+  statsFullURL <- paste0(statsBaseURL, "/", mod)
+  
+  full <- statsFullURL %>% GET() %>% content("text") %>% fromJSON(flatten = TRUE)
+  full <- full[[2]] %>% as_tibble()
+  
+  return(full)
+}
+
+getStatsTable(modifier = "teamId", teamIds = "1,2,5")
+```
+
+```{r Stats Endpoint}
+teamStats <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
+  
+  # get base table 
+  base <- getStatsTable()
+  
+  # if no modifier is present
+  if(is.null(modifier)){
+    return(base)
+  }
+
+  # team.roster modifier
+  if(modifier == "team.roster"){
+    
+    stats <- getStatsTable(modifier) 
+    
+    roster <- stats[["roster.roster"]] 
+    
+    for(i in 1:length(roster)){
+      roster[[i]]$name <- stats[["name"]][[i]]
+    }
+    
+    roster <- do.call(rbind, roster)
+    statsFlatten <- left_join(roster, stats, by = "name") %>% select(-c("roster.roster"))
+    return(statsFlatten)
+  } 
+  
+  # person.names modifier, which appears to be the same as the unmodified endpoint 
+  if(modifier == "person.names"){ 
+    stats <- getStatsTable(modifier) 
+    return(stats) 
+  } 
+  
+  # team.schedule.next modifier 
+  if(modifier == "team.schedule.next"){
+    
+    stats <- getStatsTable(modifier)
+    
+    # Grab column that needs to be flattened 
+    dates <- stats[["nextGameSchedule.dates"]]
+    
+    # Create names column to track data by team
+    # Create list of teams that have a next game scheduled 
+    datesNonNull <- list()
+    for(i in 1:length(dates)){
+      dates[[i]]$name <- stats[["name"]][[i]]
+      if(length(dates[[i]]) > 1){
+        datesNonNull <- cbind(datesNonNull, dates[i])
+      }
+    }
+    
+    # Flatten datesNonNull
+    for(i in 1:length(datesNonNull)){
+      datesNonNull[[i]] <- cbind(datesNonNull[[i]], datesNonNull[[i]][["games"]]) %>% select(-c("games")) 
+      
+      datesNonNull[[i]][["events"]] <- 
+        datesNonNull[[i]][["events"]][[1]][1][[1]]
+      
+      datesNonNull[[i]][["matches"]] <- 
+        datesNonNull[[4]][["matches"]][[1]][1][[1]]
+    } 
+    
+    # Put dates info in one tibble 
+    datesVert <- tibble() 
+    for(i in 1:length(datesNonNull)){
+      datesVert <- rbind(datesVert, datesNonNull[[i]]) 
+    } 
+    
+    # Join flattened data with full data set 
+    schedule <- left_join(stats, datesVert, by = "name") %>% select(-c("nextGameSchedule.dates"))
+    # need to rename any cols? 
+    
+    return(schedule) 
+  } 
+  
+  # team.schedule.previous modifier
+  if(modifier == "team.schedule.previous"){
+    
+    # Have to type modifier here? 
+    stats <- getStatsTable(modifier) 
+    
+    # Grab col that needs to be flattened 
+    dates <- stats[["previousGameSchedule.dates"]]
+    
+    # Create names column to track data by team
+    # Create list of teams that have a next game scheduled 
+    datesNonNull <- list()
+    for(i in 1:length(dates)){
+      dates[[i]]$name <- stats[["name"]][[i]]
+      if(length(dates[[i]]) > 1){
+        datesNonNull <- cbind(datesNonNull, dates[i])
+      }
+    }
+    
+    # Flatten datesNonNull
+    for(i in 1:length(datesNonNull)){
+      datesNonNull[[i]] <- cbind(datesNonNull[[i]], datesNonNull[[i]][["games"]]) %>% select(-c("games")) 
+      
+      datesNonNull[[i]][["events"]] <- 
+        datesNonNull[[i]][["events"]][[1]][1][[1]]
+      
+      datesNonNull[[i]][["matches"]] <- 
+        datesNonNull[[4]][["matches"]][[1]][1][[1]]
+    } 
+    
+    # Create venue.id col where it doesn't exist 
+    for(i in 1:length(datesNonNull)){
+      if(is.null(datesNonNull[[i]][["venue.id"]])){
+        datesNonNull[[i]][["venue.id"]] <- NA
+      }
+    }
+    
+    # Put dates info in one tibble 
+    datesVert <- tibble() 
+    for(i in 1:length(datesNonNull)){
+      datesVert <- rbind(datesVert, datesNonNull[[i]]) 
+    } 
+  
+    # Join flattened data with full data set 
+    schedule <- left_join(stats, datesVert, by = "name") %>% select(-c("previousGameSchedule.dates"))
+    # need to rename any cols? 
+    
+    return(schedule) 
+  } 
+  
+  # MODIFIER
+  # team.stats
+  if(modifier == "team.stats"){ 
+    stats <- getStatsTable(modifier = "team.stats")
+    
+    statsFull <- tibble()
+    for(i in stats[["name"]]){
+      teamStats <- stats %>% filter(name == i)
+    
+      teamStatsSub <- teamStats[["teamStats"]]
+    
+      wideRanks <- teamStatsSub[[1]][["splits"]][[1]] 
+    
+      longRanks <- tibble(statName = colnames(wideRanks[, 1:31]), statValue = unlist(wideRanks[1, 1:31]), statRank = unlist(wideRanks[2, 1:31]))
+  
+      ranks <- cbind(longRanks, wideRanks[1, 32:34], row.names = NULL)
+      
+      ranks <- cbind(ranks, teamStatsSub[[1]], row.names = NULL) %>% select(-c("splits"))
+    
+      ranks <- ranks %>% rename("name" = "team.name") 
+    
+      teamStats <- left_join(ranks, teamStats, by = "name") %>% select(-c("teamStats"))
+      
+      statsFull <- rbind(statsFull, teamStats)
+    } 
+    return(statsFull) 
+  } 
+  
+  # MODIFIER
+  # team.roster&season
+  if(modifier == "team.roster&season"){
+    stats <- getStatsTable(modifier, seasonId) 
+    
+    roster <- stats[["roster.roster"]]
+    
+    for(i in 1:length(roster)){
+      roster[[i]]$name <- stats[["name"]][[i]]
+    }
+    
+    roster <- do.call(rbind, roster)
+    statsFlatten <- left_join(roster, stats, by = "name") %>% select(-c("roster.roster"))
+    return(statsFlatten)
+  }
+  
+  # MODIFIER
+  # teamId
+  if(modifier == "teamId"){
+    stats <- getStatsTable(modifier, teamIds = teamIds) 
+    return(stats) 
+  }
+  
+} 
+
+teamStats()
+teamStats(modifier = "team.schedule.previous")
+teamStats(modifier = "team.stats")
+teamStats(modifier = "team.roster&season", seasonId = "20182019") 
+getStatsTable(modifier = "teamId", teamIds = "1,2,3")
+
+```
+
 
 
 
