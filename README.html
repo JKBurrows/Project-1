@@ -603,6 +603,2104 @@ body {
 <h1 id="joshua-burrows-project-1">Joshua Burrows Project 1</h1>
 <h1 id="title">Title</h1>
 <p>Hi</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a>recBaseURL &lt;-<span class="st"> &quot;https://records.nhl.com/site/api&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a></span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="co"># Return the requested table</span></span>
+<span id="cb1-4"><a href="#cb1-4"></a>getTable &lt;-<span class="st"> </span><span class="cf">function</span>(table){</span>
+<span id="cb1-5"><a href="#cb1-5"></a>  </span>
+<span id="cb1-6"><a href="#cb1-6"></a>  <span class="cf">if</span>(<span class="op">!</span><span class="kw">is.string</span>(table)){</span>
+<span id="cb1-7"><a href="#cb1-7"></a>    <span class="kw">return</span>(<span class="kw">warning</span>(<span class="st">&quot;Input must be a character string&quot;</span>)) </span>
+<span id="cb1-8"><a href="#cb1-8"></a>  }</span>
+<span id="cb1-9"><a href="#cb1-9"></a>  </span>
+<span id="cb1-10"><a href="#cb1-10"></a>  recFullURL &lt;-<span class="st"> </span><span class="kw">paste0</span>(recBaseURL, <span class="st">&quot;/&quot;</span>, table) </span>
+<span id="cb1-11"><a href="#cb1-11"></a>  info &lt;-<span class="st"> </span>recFullURL <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">GET</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">content</span>(<span class="st">&quot;text&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">fromJSON</span>(<span class="dt">flatten =</span> <span class="st">&quot;TRUE&quot;</span>)</span>
+<span id="cb1-12"><a href="#cb1-12"></a>  info &lt;-<span class="st"> </span>info[[<span class="dv">1</span>]] <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as_tibble</span>()</span>
+<span id="cb1-13"><a href="#cb1-13"></a>  </span>
+<span id="cb1-14"><a href="#cb1-14"></a>  <span class="kw">return</span>(info)</span>
+<span id="cb1-15"><a href="#cb1-15"></a>}</span>
+<span id="cb1-16"><a href="#cb1-16"></a></span>
+<span id="cb1-17"><a href="#cb1-17"></a><span class="co"># filter info from requested table by team name or team Id</span></span>
+<span id="cb1-18"><a href="#cb1-18"></a>filterTable &lt;-<span class="st"> </span><span class="cf">function</span>(table, nameName, teamIdName, name, idNum){</span>
+<span id="cb1-19"><a href="#cb1-19"></a>  </span>
+<span id="cb1-20"><a href="#cb1-20"></a>  <span class="cf">if</span>(<span class="op">!</span><span class="kw">is.null</span>(name)){</span>
+<span id="cb1-21"><a href="#cb1-21"></a>    <span class="cf">if</span>(<span class="op">!</span><span class="kw">is.null</span>(idNum)){</span>
+<span id="cb1-22"><a href="#cb1-22"></a>      <span class="kw">return</span>(<span class="kw">warning</span>(<span class="st">&quot;Search by either name or idNum, not both&quot;</span>))</span>
+<span id="cb1-23"><a href="#cb1-23"></a>    } <span class="cf">else</span> <span class="cf">if</span>(name <span class="op">==</span><span class="st"> &quot;all&quot;</span>){ </span>
+<span id="cb1-24"><a href="#cb1-24"></a>        <span class="kw">return</span>(table)</span>
+<span id="cb1-25"><a href="#cb1-25"></a>      } <span class="cf">else</span>{</span>
+<span id="cb1-26"><a href="#cb1-26"></a>          team &lt;-<span class="st"> </span>table <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(table[[nameName]] <span class="op">==</span><span class="st"> </span>name)</span>
+<span id="cb1-27"><a href="#cb1-27"></a>          <span class="cf">if</span>(<span class="kw">length</span>(team[[nameName]]) <span class="op">==</span><span class="st"> </span><span class="dv">0</span>){</span>
+<span id="cb1-28"><a href="#cb1-28"></a>            <span class="kw">return</span>(<span class="kw">warning</span>(<span class="st">&quot;name should be a team name or all&quot;</span>))</span>
+<span id="cb1-29"><a href="#cb1-29"></a>          } <span class="cf">else</span>{</span>
+<span id="cb1-30"><a href="#cb1-30"></a>              <span class="kw">return</span>(team)</span>
+<span id="cb1-31"><a href="#cb1-31"></a>            }</span>
+<span id="cb1-32"><a href="#cb1-32"></a>        }</span>
+<span id="cb1-33"><a href="#cb1-33"></a>  } <span class="cf">else</span> <span class="cf">if</span>(<span class="op">!</span><span class="kw">is.null</span>(idNum)){</span>
+<span id="cb1-34"><a href="#cb1-34"></a>      <span class="cf">if</span>(idNum <span class="op">==</span><span class="st"> &quot;all&quot;</span>){</span>
+<span id="cb1-35"><a href="#cb1-35"></a>        <span class="kw">return</span>(table)</span>
+<span id="cb1-36"><a href="#cb1-36"></a>      } <span class="cf">else</span>{</span>
+<span id="cb1-37"><a href="#cb1-37"></a>          team &lt;-<span class="st"> </span>table <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(table[[teamIdName]] <span class="op">==</span><span class="st"> </span>idNum)</span>
+<span id="cb1-38"><a href="#cb1-38"></a>          <span class="cf">if</span>(<span class="kw">length</span>(team[[teamIdName]]) <span class="op">==</span><span class="st"> </span><span class="dv">0</span>){ </span>
+<span id="cb1-39"><a href="#cb1-39"></a>            <span class="kw">return</span>(<span class="kw">warning</span>(<span class="st">&quot;Not a valid team idNum&quot;</span>))</span>
+<span id="cb1-40"><a href="#cb1-40"></a>          } <span class="cf">else</span>{</span>
+<span id="cb1-41"><a href="#cb1-41"></a>              <span class="kw">return</span>(team)</span>
+<span id="cb1-42"><a href="#cb1-42"></a>          } </span>
+<span id="cb1-43"><a href="#cb1-43"></a>      }</span>
+<span id="cb1-44"><a href="#cb1-44"></a>    } </span>
+<span id="cb1-45"><a href="#cb1-45"></a>  </span>
+<span id="cb1-46"><a href="#cb1-46"></a>  <span class="co"># if both arguments are null, return full table </span></span>
+<span id="cb1-47"><a href="#cb1-47"></a>  <span class="kw">return</span>(table) </span>
+<span id="cb1-48"><a href="#cb1-48"></a>  </span>
+<span id="cb1-49"><a href="#cb1-49"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a><span class="co"># Get franchise info by name or teamId</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a>franchise &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">name =</span> <span class="ot">NULL</span>, <span class="dt">idNum =</span> <span class="ot">NULL</span>){</span>
+<span id="cb2-3"><a href="#cb2-3"></a></span>
+<span id="cb2-4"><a href="#cb2-4"></a>  franchises &lt;-<span class="st"> </span><span class="kw">getTable</span>(<span class="st">&quot;franchise&quot;</span>) </span>
+<span id="cb2-5"><a href="#cb2-5"></a>  </span>
+<span id="cb2-6"><a href="#cb2-6"></a>  <span class="kw">filterTable</span>(franchises, <span class="dt">nameName =</span> <span class="st">&quot;teamCommonName&quot;</span>, <span class="dt">teamIdName =</span> <span class="st">&quot;id&quot;</span>, name, idNum) </span>
+<span id="cb2-7"><a href="#cb2-7"></a>  </span>
+<span id="cb2-8"><a href="#cb2-8"></a>}</span>
+<span id="cb2-9"><a href="#cb2-9"></a></span>
+<span id="cb2-10"><a href="#cb2-10"></a><span class="kw">franchise</span>(<span class="dt">name =</span> <span class="st">&quot;Canadiens&quot;</span>)</span></code></pre></div>
+<pre><code>## No encoding supplied: defaulting to UTF-8.
+
+## # A tibble: 1 x 6
+##      id firstSeasonId lastSeasonId
+##   &lt;int&gt;         &lt;int&gt;        &lt;int&gt;
+## 1     1      19171918           NA
+## # ... with 3 more variables:
+## #   mostRecentTeamId &lt;int&gt;,
+## #   teamCommonName &lt;chr&gt;,
+## #   teamPlaceName &lt;chr&gt;
+</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="co"># Return franchise team totals</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a>teamTotals &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">name =</span> <span class="ot">NULL</span>, <span class="dt">idNum =</span> <span class="ot">NULL</span>){</span>
+<span id="cb4-3"><a href="#cb4-3"></a>  </span>
+<span id="cb4-4"><a href="#cb4-4"></a>  teamTotals &lt;-<span class="st"> </span><span class="kw">getTable</span>(<span class="st">&quot;franchise-team-totals&quot;</span>) </span>
+<span id="cb4-5"><a href="#cb4-5"></a>  </span>
+<span id="cb4-6"><a href="#cb4-6"></a>  <span class="kw">filterTable</span>(teamTotals, <span class="dt">nameName =</span> <span class="st">&quot;teamName&quot;</span>, <span class="dt">teamIdName =</span> <span class="st">&quot;franchiseId&quot;</span>, name, idNum) </span>
+<span id="cb4-7"><a href="#cb4-7"></a>  </span>
+<span id="cb4-8"><a href="#cb4-8"></a>} </span>
+<span id="cb4-9"><a href="#cb4-9"></a></span>
+<span id="cb4-10"><a href="#cb4-10"></a><span class="kw">teamTotals</span>(<span class="dt">name =</span> <span class="st">&quot;Montréal Canadiens&quot;</span>)</span></code></pre></div>
+<pre><code>## No encoding supplied: defaulting to UTF-8.
+
+## # A tibble: 2 x 30
+##      id activeFranchise firstSeasonId
+##   &lt;int&gt;           &lt;int&gt;         &lt;int&gt;
+## 1    15               1      19171918
+## 2    16               1      19171918
+## # ... with 27 more variables:
+## #   franchiseId &lt;int&gt;,
+## #   gameTypeId &lt;int&gt;,
+## #   gamesPlayed &lt;int&gt;,
+## #   goalsAgainst &lt;int&gt;,
+## #   goalsFor &lt;int&gt;, homeLosses &lt;int&gt;,
+## #   homeOvertimeLosses &lt;int&gt;,
+## #   homeTies &lt;int&gt;, homeWins &lt;int&gt;,
+## #   lastSeasonId &lt;int&gt;, losses &lt;int&gt;,
+## #   overtimeLosses &lt;int&gt;,
+## #   penaltyMinutes &lt;int&gt;,
+## #   pointPctg &lt;dbl&gt;, points &lt;int&gt;,
+## #   roadLosses &lt;int&gt;,
+## #   roadOvertimeLosses &lt;int&gt;,
+## #   roadTies &lt;int&gt;, roadWins &lt;int&gt;,
+## #   shootoutLosses &lt;int&gt;,
+## #   shootoutWins &lt;int&gt;,
+## #   shutouts &lt;int&gt;, teamId &lt;int&gt;,
+## #   teamName &lt;chr&gt;, ties &lt;int&gt;,
+## #   triCode &lt;chr&gt;, wins &lt;int&gt;
+</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># Return season records for a given franchise</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>season &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">name =</span> <span class="ot">NULL</span>, <span class="dt">idNum =</span> <span class="ot">NULL</span>){</span>
+<span id="cb6-3"><a href="#cb6-3"></a>  </span>
+<span id="cb6-4"><a href="#cb6-4"></a>  seasonRecords &lt;-<span class="st"> </span><span class="kw">getTable</span>(<span class="st">&quot;franchise-season-records&quot;</span>) </span>
+<span id="cb6-5"><a href="#cb6-5"></a>  </span>
+<span id="cb6-6"><a href="#cb6-6"></a>  <span class="kw">filterTable</span>(seasonRecords, <span class="dt">nameName =</span> <span class="st">&quot;franchiseName&quot;</span>, <span class="dt">teamIdName =</span> <span class="st">&quot;franchiseId&quot;</span>, name, idNum) </span>
+<span id="cb6-7"><a href="#cb6-7"></a>} </span>
+<span id="cb6-8"><a href="#cb6-8"></a></span>
+<span id="cb6-9"><a href="#cb6-9"></a><span class="kw">season</span>(<span class="dt">name =</span> <span class="st">&quot;Montréal Canadiens&quot;</span>)</span></code></pre></div>
+<pre><code>## No encoding supplied: defaulting to UTF-8.
+
+## # A tibble: 1 x 57
+##      id fewestGoals fewestGoalsAgai~
+##   &lt;int&gt;       &lt;int&gt;            &lt;int&gt;
+## 1     8         155              131
+## # ... with 54 more variables:
+## #   fewestGoalsAgainstSeasons &lt;chr&gt;,
+## #   fewestGoalsSeasons &lt;chr&gt;,
+## #   fewestLosses &lt;int&gt;,
+## #   fewestLossesSeasons &lt;chr&gt;,
+## #   fewestPoints &lt;int&gt;,
+## #   fewestPointsSeasons &lt;chr&gt;,
+## #   fewestTies &lt;int&gt;,
+## #   fewestTiesSeasons &lt;chr&gt;,
+## #   fewestWins &lt;int&gt;,
+## #   fewestWinsSeasons &lt;chr&gt;,
+## #   franchiseId &lt;int&gt;,
+## #   franchiseName &lt;chr&gt;,
+## #   homeLossStreak &lt;int&gt;,
+## #   homeLossStreakDates &lt;chr&gt;,
+## #   homePointStreak &lt;int&gt;,
+## #   homePointStreakDates &lt;chr&gt;,
+## #   homeWinStreak &lt;int&gt;,
+## #   homeWinStreakDates &lt;chr&gt;,
+## #   homeWinlessStreak &lt;int&gt;,
+## #   homeWinlessStreakDates &lt;chr&gt;,
+## #   lossStreak &lt;int&gt;,
+## #   lossStreakDates &lt;chr&gt;,
+## #   mostGameGoals &lt;int&gt;,
+## #   mostGameGoalsDates &lt;chr&gt;,
+## #   mostGoals &lt;int&gt;,
+## #   mostGoalsAgainst &lt;int&gt;,
+## #   mostGoalsAgainstSeasons &lt;chr&gt;,
+## #   mostGoalsSeasons &lt;chr&gt;,
+## #   mostLosses &lt;int&gt;,
+## #   mostLossesSeasons &lt;chr&gt;,
+## #   mostPenaltyMinutes &lt;int&gt;,
+## #   mostPenaltyMinutesSeasons &lt;chr&gt;,
+## #   mostPoints &lt;int&gt;,
+## #   mostPointsSeasons &lt;chr&gt;,
+## #   mostShutouts &lt;int&gt;,
+## #   mostShutoutsSeasons &lt;chr&gt;,
+## #   mostTies &lt;int&gt;,
+## #   mostTiesSeasons &lt;chr&gt;,
+## #   mostWins &lt;int&gt;,
+## #   mostWinsSeasons &lt;chr&gt;,
+## #   pointStreak &lt;int&gt;,
+## #   pointStreakDates &lt;chr&gt;,
+## #   roadLossStreak &lt;int&gt;,
+## #   roadLossStreakDates &lt;chr&gt;,
+## #   roadPointStreak &lt;int&gt;,
+## #   roadPointStreakDates &lt;chr&gt;,
+## #   roadWinStreak &lt;int&gt;,
+## #   roadWinStreakDates &lt;chr&gt;,
+## #   roadWinlessStreak &lt;int&gt;,
+## #   roadWinlessStreakDates &lt;chr&gt;,
+## #   winStreak &lt;int&gt;,
+## #   winStreakDates &lt;chr&gt;,
+## #   winlessStreak &lt;int&gt;,
+## #   winlessStreakDates &lt;chr&gt;
+</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a><span class="co"># Test </span></span>
+<span id="cb8-2"><a href="#cb8-2"></a>test &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="st">&quot;https://records.nhl.com/site/api/franchise-season-records?cayenneExp=franchiseId=1&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">content</span>(<span class="st">&quot;text&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">fromJSON</span>(<span class="dt">flatten =</span> <span class="ot">TRUE</span>) </span></code></pre></div>
+<pre><code>## No encoding supplied: defaulting to UTF-8.
+</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>test</span></code></pre></div>
+<pre><code>## $data
+##   id fewestGoals fewestGoalsAgainst
+## 1  8         155                131
+##   fewestGoalsAgainstSeasons
+## 1              1955-56 (70)
+##   fewestGoalsSeasons fewestLosses
+## 1       1952-53 (70)            8
+##   fewestLossesSeasons fewestPoints
+## 1        1976-77 (80)           65
+##   fewestPointsSeasons fewestTies
+## 1        1950-51 (70)          5
+##   fewestTiesSeasons fewestWins
+## 1      1983-84 (80)         25
+##   fewestWinsSeasons franchiseId
+## 1      1950-51 (70)           1
+##        franchiseName homeLossStreak
+## 1 Montréal Canadiens              7
+##                                    homeLossStreakDates
+## 1 Dec 16 1939 - Jan 18 1940, Oct 28 2000 - Nov 25 2000
+##   homePointStreak
+## 1              34
+##        homePointStreakDates
+## 1 Nov 01 1976 - Apr 02 1977
+##   homeWinStreak
+## 1            13
+##                                     homeWinStreakDates
+## 1 Nov 02 1943 - Jan 08 1944, Jan 30 1977 - Mar 26 1977
+##   homeWinlessStreak
+## 1                15
+##      homeWinlessStreakDates lossStreak
+## 1 Dec 16 1939 - Mar 07 1940         12
+##             lossStreakDates
+## 1 Feb 13 1926 - Mar 13 1926
+##   mostGameGoals
+## 1            16
+##             mostGameGoalsDates
+## 1 Mar 03 1920 - MTL 16 @ QBD 3
+##   mostGoals mostGoalsAgainst
+## 1       387              295
+##   mostGoalsAgainstSeasons
+## 1            1983-84 (80)
+##   mostGoalsSeasons mostLosses
+## 1     1976-77 (80)         40
+##                          mostLossesSeasons
+## 1 1983-84 (80), 2000-01 (82), 2017-18 (82)
+##   mostPenaltyMinutes
+## 1               1847
+##   mostPenaltyMinutesSeasons mostPoints
+## 1              1995-96 (82)        132
+##   mostPointsSeasons mostShutouts
+## 1      1976-77 (80)           22
+##   mostShutoutsSeasons mostTies
+## 1        1928-29 (44)       23
+##   mostTiesSeasons mostWins
+## 1    1962-63 (70)       60
+##   mostWinsSeasons pointStreak
+## 1    1976-77 (80)          28
+##            pointStreakDates
+## 1 Dec 18 1977 - Feb 23 1978
+##   roadLossStreak
+## 1             10
+##         roadLossStreakDates
+## 1 Jan 16 1926 - Mar 13 1926
+##   roadPointStreak
+## 1              23
+##        roadPointStreakDates
+## 1 Nov 27 1974 - Mar 12 1975
+##   roadWinStreak
+## 1             8
+##                                     roadWinStreakDates
+## 1 Dec 18 1977 - Jan 18 1978, Jan 21 1982 - Feb 21 1982
+##   roadWinlessStreak
+## 1                12
+##                                 roadWinlessStreakDates
+## 1 Nov 26 1933 - Jan 28 1934, Oct 20 1951 - Dec 13 1951
+##   winStreak            winStreakDates
+## 1        12 Jan 06 1968 - Feb 03 1968
+##   winlessStreak
+## 1             8
+##                                     winlessStreakDates
+## 1 Nov 16 2019 - Dec 01 2019, Dec 28 2019 - Jan 09 2020
+## 
+## $total
+## [1] 1
+</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a><span class="co"># Return franchise goalie records </span></span>
+<span id="cb12-2"><a href="#cb12-2"></a>goalie &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">name =</span> <span class="ot">NULL</span>, <span class="dt">idNum =</span> <span class="ot">NULL</span>){</span>
+<span id="cb12-3"><a href="#cb12-3"></a>  </span>
+<span id="cb12-4"><a href="#cb12-4"></a>  goalieRecords &lt;-<span class="st"> </span><span class="kw">getTable</span>(<span class="st">&quot;franchise-goalie-records&quot;</span>)</span>
+<span id="cb12-5"><a href="#cb12-5"></a>  </span>
+<span id="cb12-6"><a href="#cb12-6"></a>  <span class="kw">filterTable</span>(goalieRecords, <span class="dt">nameName =</span> <span class="st">&quot;franchiseName&quot;</span>, <span class="dt">teamIdName =</span> <span class="st">&quot;franchiseId&quot;</span>, name, idNum)</span>
+<span id="cb12-7"><a href="#cb12-7"></a>  </span>
+<span id="cb12-8"><a href="#cb12-8"></a>} </span>
+<span id="cb12-9"><a href="#cb12-9"></a></span>
+<span id="cb12-10"><a href="#cb12-10"></a><span class="kw">goalie</span>(<span class="dt">name =</span> <span class="st">&quot;Montréal Canadiens&quot;</span>)</span></code></pre></div>
+<pre><code>## No encoding supplied: defaulting to UTF-8.
+
+## # A tibble: 37 x 29
+##       id activePlayer firstName
+##    &lt;int&gt; &lt;lgl&gt;        &lt;chr&gt;    
+##  1   261 FALSE        Patrick  
+##  2   294 TRUE         Carey    
+##  3   296 FALSE        Jacques  
+##  4   327 FALSE        George   
+##  5   414 FALSE        Stephane 
+##  6   437 FALSE        Jeff     
+##  7   450 FALSE        Brian    
+##  8   457 FALSE        Denis    
+##  9   469 FALSE        Pat      
+## 10   511 FALSE        Roland   
+## # ... with 27 more rows, and 26 more
+## #   variables: franchiseId &lt;int&gt;,
+## #   franchiseName &lt;chr&gt;,
+## #   gameTypeId &lt;int&gt;,
+## #   gamesPlayed &lt;int&gt;, lastName &lt;chr&gt;,
+## #   losses &lt;int&gt;,
+## #   mostGoalsAgainstDates &lt;chr&gt;,
+## #   mostGoalsAgainstOneGame &lt;int&gt;,
+## #   mostSavesDates &lt;chr&gt;,
+## #   mostSavesOneGame &lt;int&gt;,
+## #   mostShotsAgainstDates &lt;chr&gt;,
+## #   mostShotsAgainstOneGame &lt;int&gt;,
+## #   mostShutoutsOneSeason &lt;int&gt;,
+## #   mostShutoutsSeasonIds &lt;chr&gt;,
+## #   mostWinsOneSeason &lt;int&gt;,
+## #   mostWinsSeasonIds &lt;chr&gt;,
+## #   overtimeLosses &lt;int&gt;,
+## #   playerId &lt;int&gt;,
+## #   positionCode &lt;chr&gt;,
+## #   rookieGamesPlayed &lt;int&gt;,
+## #   rookieShutouts &lt;int&gt;,
+## #   rookieWins &lt;int&gt;, seasons &lt;int&gt;,
+## #   shutouts &lt;int&gt;, ties &lt;int&gt;,
+## #   wins &lt;int&gt;
+</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>skater &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">name =</span> <span class="ot">NULL</span>, <span class="dt">idNum =</span> <span class="ot">NULL</span>){</span>
+<span id="cb14-2"><a href="#cb14-2"></a>  </span>
+<span id="cb14-3"><a href="#cb14-3"></a>  skaterRecords &lt;-<span class="st"> </span><span class="kw">getTable</span>(<span class="st">&quot;franchise-skater-records&quot;</span>) </span>
+<span id="cb14-4"><a href="#cb14-4"></a>  </span>
+<span id="cb14-5"><a href="#cb14-5"></a>  <span class="kw">filterTable</span>(skaterRecords, <span class="dt">nameName =</span> <span class="st">&quot;franchiseName&quot;</span>, <span class="dt">teamIdName =</span> <span class="st">&quot;franchiseId&quot;</span>, name, idNum) </span>
+<span id="cb14-6"><a href="#cb14-6"></a>  </span>
+<span id="cb14-7"><a href="#cb14-7"></a>}</span>
+<span id="cb14-8"><a href="#cb14-8"></a></span>
+<span id="cb14-9"><a href="#cb14-9"></a><span class="kw">skater</span>(<span class="dt">name =</span> <span class="st">&quot;Montréal Canadiens&quot;</span>)</span></code></pre></div>
+<pre><code>## No encoding supplied: defaulting to UTF-8.
+
+## # A tibble: 788 x 30
+##       id activePlayer assists firstName
+##    &lt;int&gt; &lt;lgl&gt;          &lt;int&gt; &lt;chr&gt;    
+##  1 16891 FALSE            712 Jean     
+##  2 16911 FALSE            688 Henri    
+##  3 16990 FALSE            422 Maurice  
+##  4 17000 FALSE            728 Guy      
+##  5 17025 FALSE             87 Chris    
+##  6 17054 FALSE            368 Steve    
+##  7 17074 FALSE            346 Peter    
+##  8 17138 FALSE            369 Mats     
+##  9 17191 FALSE            686 Larry    
+## 10 17199 FALSE              0 Reg      
+## # ... with 778 more rows, and 26 more
+## #   variables: franchiseId &lt;int&gt;,
+## #   franchiseName &lt;chr&gt;,
+## #   gameTypeId &lt;int&gt;,
+## #   gamesPlayed &lt;int&gt;, goals &lt;int&gt;,
+## #   lastName &lt;chr&gt;,
+## #   mostAssistsGameDates &lt;chr&gt;,
+## #   mostAssistsOneGame &lt;int&gt;,
+## #   mostAssistsOneSeason &lt;int&gt;,
+## #   mostAssistsSeasonIds &lt;chr&gt;,
+## #   mostGoalsGameDates &lt;chr&gt;,
+## #   mostGoalsOneGame &lt;int&gt;,
+## #   mostGoalsOneSeason &lt;int&gt;,
+## #   mostGoalsSeasonIds &lt;chr&gt;,
+## #   mostPenaltyMinutesOneSeason &lt;int&gt;,
+## #   mostPenaltyMinutesSeasonIds &lt;chr&gt;,
+## #   mostPointsGameDates &lt;chr&gt;,
+## #   mostPointsOneGame &lt;int&gt;,
+## #   mostPointsOneSeason &lt;int&gt;,
+## #   mostPointsSeasonIds &lt;chr&gt;,
+## #   penaltyMinutes &lt;int&gt;,
+## #   playerId &lt;int&gt;, points &lt;int&gt;,
+## #   positionCode &lt;chr&gt;,
+## #   rookiePoints &lt;int&gt;, seasons &lt;int&gt;
+</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>statsBaseURL &lt;-<span class="st"> &quot;https://statsapi.web.nhl.com/api/v1/teams&quot;</span></span>
+<span id="cb16-2"><a href="#cb16-2"></a></span>
+<span id="cb16-3"><a href="#cb16-3"></a>getStatsTable &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">modifier =</span> <span class="ot">NULL</span>, <span class="dt">seasonId =</span> <span class="ot">NULL</span>, <span class="dt">teamIds =</span> <span class="ot">NULL</span>){</span>
+<span id="cb16-4"><a href="#cb16-4"></a>  </span>
+<span id="cb16-5"><a href="#cb16-5"></a>  <span class="cf">if</span>(<span class="kw">is.null</span>(modifier)){</span>
+<span id="cb16-6"><a href="#cb16-6"></a>    base &lt;-<span class="st"> </span>statsBaseURL <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">GET</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">content</span>(<span class="st">&quot;text&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">fromJSON</span>(<span class="dt">flatten =</span> <span class="ot">TRUE</span>)</span>
+<span id="cb16-7"><a href="#cb16-7"></a>  base &lt;-<span class="st"> </span>base[[<span class="dv">2</span>]] <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as_tibble</span>()</span>
+<span id="cb16-8"><a href="#cb16-8"></a>  <span class="kw">return</span>(base)</span>
+<span id="cb16-9"><a href="#cb16-9"></a>  }</span>
+<span id="cb16-10"><a href="#cb16-10"></a>    </span>
+<span id="cb16-11"><a href="#cb16-11"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.roster&quot;</span>){</span>
+<span id="cb16-12"><a href="#cb16-12"></a>    mod =<span class="st"> &quot;?expand=team.roster&quot;</span></span>
+<span id="cb16-13"><a href="#cb16-13"></a>  } </span>
+<span id="cb16-14"><a href="#cb16-14"></a>  </span>
+<span id="cb16-15"><a href="#cb16-15"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;person.names&quot;</span>){</span>
+<span id="cb16-16"><a href="#cb16-16"></a>    mod =<span class="st"> &quot;?expand=person.names&quot;</span> </span>
+<span id="cb16-17"><a href="#cb16-17"></a>  }</span>
+<span id="cb16-18"><a href="#cb16-18"></a>  </span>
+<span id="cb16-19"><a href="#cb16-19"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.schedule.next&quot;</span>){</span>
+<span id="cb16-20"><a href="#cb16-20"></a>    mod =<span class="st"> &quot;?expand=team.schedule.next&quot;</span></span>
+<span id="cb16-21"><a href="#cb16-21"></a>  } </span>
+<span id="cb16-22"><a href="#cb16-22"></a>  </span>
+<span id="cb16-23"><a href="#cb16-23"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.schedule.previous&quot;</span>){</span>
+<span id="cb16-24"><a href="#cb16-24"></a>    mod =<span class="st"> &quot;?expand=team.schedule.previous&quot;</span></span>
+<span id="cb16-25"><a href="#cb16-25"></a>  }</span>
+<span id="cb16-26"><a href="#cb16-26"></a>  </span>
+<span id="cb16-27"><a href="#cb16-27"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.stats&quot;</span>){</span>
+<span id="cb16-28"><a href="#cb16-28"></a>    mod =<span class="st"> &quot;?expand=team.stats&quot;</span></span>
+<span id="cb16-29"><a href="#cb16-29"></a>  }</span>
+<span id="cb16-30"><a href="#cb16-30"></a>  </span>
+<span id="cb16-31"><a href="#cb16-31"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.roster&amp;season&quot;</span>){</span>
+<span id="cb16-32"><a href="#cb16-32"></a>    mod =<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;?expand=team.roster&amp;season=&quot;</span>, seasonId)</span>
+<span id="cb16-33"><a href="#cb16-33"></a>  }</span>
+<span id="cb16-34"><a href="#cb16-34"></a>  </span>
+<span id="cb16-35"><a href="#cb16-35"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;teamId&quot;</span>){</span>
+<span id="cb16-36"><a href="#cb16-36"></a>    mod =<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;?teamId=&quot;</span>, teamIds)</span>
+<span id="cb16-37"><a href="#cb16-37"></a>  }</span>
+<span id="cb16-38"><a href="#cb16-38"></a>  </span>
+<span id="cb16-39"><a href="#cb16-39"></a>  statsFullURL &lt;-<span class="st"> </span><span class="kw">paste0</span>(statsBaseURL, <span class="st">&quot;/&quot;</span>, mod)</span>
+<span id="cb16-40"><a href="#cb16-40"></a>  </span>
+<span id="cb16-41"><a href="#cb16-41"></a>  full &lt;-<span class="st"> </span>statsFullURL <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">GET</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">content</span>(<span class="st">&quot;text&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">fromJSON</span>(<span class="dt">flatten =</span> <span class="ot">TRUE</span>)</span>
+<span id="cb16-42"><a href="#cb16-42"></a>  full &lt;-<span class="st"> </span>full[[<span class="dv">2</span>]] <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">as_tibble</span>()</span>
+<span id="cb16-43"><a href="#cb16-43"></a>  </span>
+<span id="cb16-44"><a href="#cb16-44"></a>  <span class="kw">return</span>(full)</span>
+<span id="cb16-45"><a href="#cb16-45"></a>}</span>
+<span id="cb16-46"><a href="#cb16-46"></a></span>
+<span id="cb16-47"><a href="#cb16-47"></a><span class="kw">getStatsTable</span>(<span class="dt">modifier =</span> <span class="st">&quot;teamId&quot;</span>, <span class="dt">teamIds =</span> <span class="st">&quot;1,2,5&quot;</span>)</span></code></pre></div>
+<pre><code>## # A tibble: 3 x 29
+##      id name  link  abbreviation
+##   &lt;int&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;       
+## 1     1 New ~ /api~ NJD         
+## 2     2 New ~ /api~ NYI         
+## 3     5 Pitt~ /api~ PIT         
+## # ... with 25 more variables:
+## #   teamName &lt;chr&gt;,
+## #   locationName &lt;chr&gt;,
+## #   firstYearOfPlay &lt;chr&gt;,
+## #   shortName &lt;chr&gt;,
+## #   officialSiteUrl &lt;chr&gt;,
+## #   franchiseId &lt;int&gt;, active &lt;lgl&gt;,
+## #   venue.name &lt;chr&gt;,
+## #   venue.link &lt;chr&gt;,
+## #   venue.city &lt;chr&gt;, venue.id &lt;int&gt;,
+## #   venue.timeZone.id &lt;chr&gt;,
+## #   venue.timeZone.offset &lt;int&gt;,
+## #   venue.timeZone.tz &lt;chr&gt;,
+## #   division.id &lt;int&gt;,
+## #   division.name &lt;chr&gt;,
+## #   division.nameShort &lt;chr&gt;,
+## #   division.link &lt;chr&gt;,
+## #   division.abbreviation &lt;chr&gt;,
+## #   conference.id &lt;int&gt;,
+## #   conference.name &lt;chr&gt;,
+## #   conference.link &lt;chr&gt;,
+## #   franchise.franchiseId &lt;int&gt;,
+## #   franchise.teamName &lt;chr&gt;,
+## #   franchise.link &lt;chr&gt;
+</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1"></a>teamStats &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">modifier =</span> <span class="ot">NULL</span>, <span class="dt">seasonId =</span> <span class="ot">NULL</span>, <span class="dt">teamIds =</span> <span class="ot">NULL</span>){</span>
+<span id="cb18-2"><a href="#cb18-2"></a>  </span>
+<span id="cb18-3"><a href="#cb18-3"></a>  <span class="co"># get base table </span></span>
+<span id="cb18-4"><a href="#cb18-4"></a>  base &lt;-<span class="st"> </span><span class="kw">getStatsTable</span>()</span>
+<span id="cb18-5"><a href="#cb18-5"></a>  </span>
+<span id="cb18-6"><a href="#cb18-6"></a>  <span class="co"># if no modifier is present</span></span>
+<span id="cb18-7"><a href="#cb18-7"></a>  <span class="cf">if</span>(<span class="kw">is.null</span>(modifier)){</span>
+<span id="cb18-8"><a href="#cb18-8"></a>    <span class="kw">return</span>(base)</span>
+<span id="cb18-9"><a href="#cb18-9"></a>  }</span>
+<span id="cb18-10"><a href="#cb18-10"></a></span>
+<span id="cb18-11"><a href="#cb18-11"></a>  <span class="co"># team.roster modifier</span></span>
+<span id="cb18-12"><a href="#cb18-12"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.roster&quot;</span>){</span>
+<span id="cb18-13"><a href="#cb18-13"></a>    </span>
+<span id="cb18-14"><a href="#cb18-14"></a>    stats &lt;-<span class="st"> </span><span class="kw">getStatsTable</span>(modifier) </span>
+<span id="cb18-15"><a href="#cb18-15"></a>    </span>
+<span id="cb18-16"><a href="#cb18-16"></a>    roster &lt;-<span class="st"> </span>stats[[<span class="st">&quot;roster.roster&quot;</span>]] </span>
+<span id="cb18-17"><a href="#cb18-17"></a>    </span>
+<span id="cb18-18"><a href="#cb18-18"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(roster)){</span>
+<span id="cb18-19"><a href="#cb18-19"></a>      roster[[i]]<span class="op">$</span>name &lt;-<span class="st"> </span>stats[[<span class="st">&quot;name&quot;</span>]][[i]]</span>
+<span id="cb18-20"><a href="#cb18-20"></a>    }</span>
+<span id="cb18-21"><a href="#cb18-21"></a>    </span>
+<span id="cb18-22"><a href="#cb18-22"></a>    roster &lt;-<span class="st"> </span><span class="kw">do.call</span>(rbind, roster)</span>
+<span id="cb18-23"><a href="#cb18-23"></a>    statsFlatten &lt;-<span class="st"> </span><span class="kw">left_join</span>(roster, stats, <span class="dt">by =</span> <span class="st">&quot;name&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;roster.roster&quot;</span>))</span>
+<span id="cb18-24"><a href="#cb18-24"></a>    <span class="kw">return</span>(statsFlatten)</span>
+<span id="cb18-25"><a href="#cb18-25"></a>  } </span>
+<span id="cb18-26"><a href="#cb18-26"></a>  </span>
+<span id="cb18-27"><a href="#cb18-27"></a>  <span class="co"># person.names modifier, which appears to be the same as the unmodified endpoint </span></span>
+<span id="cb18-28"><a href="#cb18-28"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;person.names&quot;</span>){ </span>
+<span id="cb18-29"><a href="#cb18-29"></a>    stats &lt;-<span class="st"> </span><span class="kw">getStatsTable</span>(modifier) </span>
+<span id="cb18-30"><a href="#cb18-30"></a>    <span class="kw">return</span>(stats) </span>
+<span id="cb18-31"><a href="#cb18-31"></a>  } </span>
+<span id="cb18-32"><a href="#cb18-32"></a>  </span>
+<span id="cb18-33"><a href="#cb18-33"></a>  <span class="co"># team.schedule.next modifier </span></span>
+<span id="cb18-34"><a href="#cb18-34"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.schedule.next&quot;</span>){</span>
+<span id="cb18-35"><a href="#cb18-35"></a>    </span>
+<span id="cb18-36"><a href="#cb18-36"></a>    stats &lt;-<span class="st"> </span><span class="kw">getStatsTable</span>(modifier)</span>
+<span id="cb18-37"><a href="#cb18-37"></a>    </span>
+<span id="cb18-38"><a href="#cb18-38"></a>    <span class="co"># Grab column that needs to be flattened </span></span>
+<span id="cb18-39"><a href="#cb18-39"></a>    dates &lt;-<span class="st"> </span>stats[[<span class="st">&quot;nextGameSchedule.dates&quot;</span>]]</span>
+<span id="cb18-40"><a href="#cb18-40"></a>    </span>
+<span id="cb18-41"><a href="#cb18-41"></a>    <span class="co"># Create names column to track data by team</span></span>
+<span id="cb18-42"><a href="#cb18-42"></a>    <span class="co"># Create list of teams that have a next game scheduled </span></span>
+<span id="cb18-43"><a href="#cb18-43"></a>    datesNonNull &lt;-<span class="st"> </span><span class="kw">list</span>()</span>
+<span id="cb18-44"><a href="#cb18-44"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(dates)){</span>
+<span id="cb18-45"><a href="#cb18-45"></a>      dates[[i]]<span class="op">$</span>name &lt;-<span class="st"> </span>stats[[<span class="st">&quot;name&quot;</span>]][[i]]</span>
+<span id="cb18-46"><a href="#cb18-46"></a>      <span class="cf">if</span>(<span class="kw">length</span>(dates[[i]]) <span class="op">&gt;</span><span class="st"> </span><span class="dv">1</span>){</span>
+<span id="cb18-47"><a href="#cb18-47"></a>        datesNonNull &lt;-<span class="st"> </span><span class="kw">cbind</span>(datesNonNull, dates[i])</span>
+<span id="cb18-48"><a href="#cb18-48"></a>      }</span>
+<span id="cb18-49"><a href="#cb18-49"></a>    }</span>
+<span id="cb18-50"><a href="#cb18-50"></a>    </span>
+<span id="cb18-51"><a href="#cb18-51"></a>    <span class="co"># Flatten datesNonNull</span></span>
+<span id="cb18-52"><a href="#cb18-52"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(datesNonNull)){</span>
+<span id="cb18-53"><a href="#cb18-53"></a>      datesNonNull[[i]] &lt;-<span class="st"> </span><span class="kw">cbind</span>(datesNonNull[[i]], datesNonNull[[i]][[<span class="st">&quot;games&quot;</span>]]) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;games&quot;</span>)) </span>
+<span id="cb18-54"><a href="#cb18-54"></a>      </span>
+<span id="cb18-55"><a href="#cb18-55"></a>      datesNonNull[[i]][[<span class="st">&quot;events&quot;</span>]] &lt;-<span class="st"> </span></span>
+<span id="cb18-56"><a href="#cb18-56"></a><span class="st">        </span>datesNonNull[[i]][[<span class="st">&quot;events&quot;</span>]][[<span class="dv">1</span>]][<span class="dv">1</span>][[<span class="dv">1</span>]]</span>
+<span id="cb18-57"><a href="#cb18-57"></a>      </span>
+<span id="cb18-58"><a href="#cb18-58"></a>      datesNonNull[[i]][[<span class="st">&quot;matches&quot;</span>]] &lt;-<span class="st"> </span></span>
+<span id="cb18-59"><a href="#cb18-59"></a><span class="st">        </span>datesNonNull[[<span class="dv">4</span>]][[<span class="st">&quot;matches&quot;</span>]][[<span class="dv">1</span>]][<span class="dv">1</span>][[<span class="dv">1</span>]]</span>
+<span id="cb18-60"><a href="#cb18-60"></a>    } </span>
+<span id="cb18-61"><a href="#cb18-61"></a>    </span>
+<span id="cb18-62"><a href="#cb18-62"></a>    <span class="co"># Put dates info in one tibble </span></span>
+<span id="cb18-63"><a href="#cb18-63"></a>    datesVert &lt;-<span class="st"> </span><span class="kw">tibble</span>() </span>
+<span id="cb18-64"><a href="#cb18-64"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(datesNonNull)){</span>
+<span id="cb18-65"><a href="#cb18-65"></a>      datesVert &lt;-<span class="st"> </span><span class="kw">rbind</span>(datesVert, datesNonNull[[i]]) </span>
+<span id="cb18-66"><a href="#cb18-66"></a>    } </span>
+<span id="cb18-67"><a href="#cb18-67"></a>    </span>
+<span id="cb18-68"><a href="#cb18-68"></a>    <span class="co"># Join flattened data with full data set </span></span>
+<span id="cb18-69"><a href="#cb18-69"></a>    schedule &lt;-<span class="st"> </span><span class="kw">left_join</span>(stats, datesVert, <span class="dt">by =</span> <span class="st">&quot;name&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;nextGameSchedule.dates&quot;</span>))</span>
+<span id="cb18-70"><a href="#cb18-70"></a>    <span class="co"># need to rename any cols? </span></span>
+<span id="cb18-71"><a href="#cb18-71"></a>    </span>
+<span id="cb18-72"><a href="#cb18-72"></a>    <span class="kw">return</span>(schedule) </span>
+<span id="cb18-73"><a href="#cb18-73"></a>  } </span>
+<span id="cb18-74"><a href="#cb18-74"></a>  </span>
+<span id="cb18-75"><a href="#cb18-75"></a>  <span class="co"># team.schedule.previous modifier</span></span>
+<span id="cb18-76"><a href="#cb18-76"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.schedule.previous&quot;</span>){</span>
+<span id="cb18-77"><a href="#cb18-77"></a>    </span>
+<span id="cb18-78"><a href="#cb18-78"></a>    <span class="co"># Have to type modifier here? </span></span>
+<span id="cb18-79"><a href="#cb18-79"></a>    stats &lt;-<span class="st"> </span><span class="kw">getStatsTable</span>(modifier) </span>
+<span id="cb18-80"><a href="#cb18-80"></a>    </span>
+<span id="cb18-81"><a href="#cb18-81"></a>    <span class="co"># Grab col that needs to be flattened </span></span>
+<span id="cb18-82"><a href="#cb18-82"></a>    dates &lt;-<span class="st"> </span>stats[[<span class="st">&quot;previousGameSchedule.dates&quot;</span>]]</span>
+<span id="cb18-83"><a href="#cb18-83"></a>    </span>
+<span id="cb18-84"><a href="#cb18-84"></a>    <span class="co"># Create names column to track data by team</span></span>
+<span id="cb18-85"><a href="#cb18-85"></a>    <span class="co"># Create list of teams that have a next game scheduled </span></span>
+<span id="cb18-86"><a href="#cb18-86"></a>    datesNonNull &lt;-<span class="st"> </span><span class="kw">list</span>()</span>
+<span id="cb18-87"><a href="#cb18-87"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(dates)){</span>
+<span id="cb18-88"><a href="#cb18-88"></a>      dates[[i]]<span class="op">$</span>name &lt;-<span class="st"> </span>stats[[<span class="st">&quot;name&quot;</span>]][[i]]</span>
+<span id="cb18-89"><a href="#cb18-89"></a>      <span class="cf">if</span>(<span class="kw">length</span>(dates[[i]]) <span class="op">&gt;</span><span class="st"> </span><span class="dv">1</span>){</span>
+<span id="cb18-90"><a href="#cb18-90"></a>        datesNonNull &lt;-<span class="st"> </span><span class="kw">cbind</span>(datesNonNull, dates[i])</span>
+<span id="cb18-91"><a href="#cb18-91"></a>      }</span>
+<span id="cb18-92"><a href="#cb18-92"></a>    }</span>
+<span id="cb18-93"><a href="#cb18-93"></a>    </span>
+<span id="cb18-94"><a href="#cb18-94"></a>    <span class="co"># Flatten datesNonNull</span></span>
+<span id="cb18-95"><a href="#cb18-95"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(datesNonNull)){</span>
+<span id="cb18-96"><a href="#cb18-96"></a>      datesNonNull[[i]] &lt;-<span class="st"> </span><span class="kw">cbind</span>(datesNonNull[[i]], datesNonNull[[i]][[<span class="st">&quot;games&quot;</span>]]) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;games&quot;</span>)) </span>
+<span id="cb18-97"><a href="#cb18-97"></a>      </span>
+<span id="cb18-98"><a href="#cb18-98"></a>      datesNonNull[[i]][[<span class="st">&quot;events&quot;</span>]] &lt;-<span class="st"> </span></span>
+<span id="cb18-99"><a href="#cb18-99"></a><span class="st">        </span>datesNonNull[[i]][[<span class="st">&quot;events&quot;</span>]][[<span class="dv">1</span>]][<span class="dv">1</span>][[<span class="dv">1</span>]]</span>
+<span id="cb18-100"><a href="#cb18-100"></a>      </span>
+<span id="cb18-101"><a href="#cb18-101"></a>      datesNonNull[[i]][[<span class="st">&quot;matches&quot;</span>]] &lt;-<span class="st"> </span></span>
+<span id="cb18-102"><a href="#cb18-102"></a><span class="st">        </span>datesNonNull[[<span class="dv">4</span>]][[<span class="st">&quot;matches&quot;</span>]][[<span class="dv">1</span>]][<span class="dv">1</span>][[<span class="dv">1</span>]]</span>
+<span id="cb18-103"><a href="#cb18-103"></a>    } </span>
+<span id="cb18-104"><a href="#cb18-104"></a>    </span>
+<span id="cb18-105"><a href="#cb18-105"></a>    <span class="co"># Create venue.id col where it doesn&#39;t exist </span></span>
+<span id="cb18-106"><a href="#cb18-106"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(datesNonNull)){</span>
+<span id="cb18-107"><a href="#cb18-107"></a>      <span class="cf">if</span>(<span class="kw">is.null</span>(datesNonNull[[i]][[<span class="st">&quot;venue.id&quot;</span>]])){</span>
+<span id="cb18-108"><a href="#cb18-108"></a>        datesNonNull[[i]][[<span class="st">&quot;venue.id&quot;</span>]] &lt;-<span class="st"> </span><span class="ot">NA</span></span>
+<span id="cb18-109"><a href="#cb18-109"></a>      }</span>
+<span id="cb18-110"><a href="#cb18-110"></a>    }</span>
+<span id="cb18-111"><a href="#cb18-111"></a>    </span>
+<span id="cb18-112"><a href="#cb18-112"></a>    <span class="co"># Put dates info in one tibble </span></span>
+<span id="cb18-113"><a href="#cb18-113"></a>    datesVert &lt;-<span class="st"> </span><span class="kw">tibble</span>() </span>
+<span id="cb18-114"><a href="#cb18-114"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(datesNonNull)){</span>
+<span id="cb18-115"><a href="#cb18-115"></a>      datesVert &lt;-<span class="st"> </span><span class="kw">rbind</span>(datesVert, datesNonNull[[i]]) </span>
+<span id="cb18-116"><a href="#cb18-116"></a>    } </span>
+<span id="cb18-117"><a href="#cb18-117"></a>  </span>
+<span id="cb18-118"><a href="#cb18-118"></a>    <span class="co"># Join flattened data with full data set </span></span>
+<span id="cb18-119"><a href="#cb18-119"></a>    schedule &lt;-<span class="st"> </span><span class="kw">left_join</span>(stats, datesVert, <span class="dt">by =</span> <span class="st">&quot;name&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;previousGameSchedule.dates&quot;</span>))</span>
+<span id="cb18-120"><a href="#cb18-120"></a>    <span class="co"># need to rename any cols? </span></span>
+<span id="cb18-121"><a href="#cb18-121"></a>    </span>
+<span id="cb18-122"><a href="#cb18-122"></a>    <span class="kw">return</span>(schedule) </span>
+<span id="cb18-123"><a href="#cb18-123"></a>  } </span>
+<span id="cb18-124"><a href="#cb18-124"></a>  </span>
+<span id="cb18-125"><a href="#cb18-125"></a>  <span class="co"># MODIFIER</span></span>
+<span id="cb18-126"><a href="#cb18-126"></a>  <span class="co"># team.stats</span></span>
+<span id="cb18-127"><a href="#cb18-127"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.stats&quot;</span>){ </span>
+<span id="cb18-128"><a href="#cb18-128"></a>    stats &lt;-<span class="st"> </span><span class="kw">getStatsTable</span>(<span class="dt">modifier =</span> <span class="st">&quot;team.stats&quot;</span>)</span>
+<span id="cb18-129"><a href="#cb18-129"></a>    </span>
+<span id="cb18-130"><a href="#cb18-130"></a>    statsFull &lt;-<span class="st"> </span><span class="kw">tibble</span>()</span>
+<span id="cb18-131"><a href="#cb18-131"></a>    <span class="cf">for</span>(i <span class="cf">in</span> stats[[<span class="st">&quot;name&quot;</span>]]){</span>
+<span id="cb18-132"><a href="#cb18-132"></a>      teamStats &lt;-<span class="st"> </span>stats <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(name <span class="op">==</span><span class="st"> </span>i)</span>
+<span id="cb18-133"><a href="#cb18-133"></a>    </span>
+<span id="cb18-134"><a href="#cb18-134"></a>      teamStatsSub &lt;-<span class="st"> </span>teamStats[[<span class="st">&quot;teamStats&quot;</span>]]</span>
+<span id="cb18-135"><a href="#cb18-135"></a>    </span>
+<span id="cb18-136"><a href="#cb18-136"></a>      wideRanks &lt;-<span class="st"> </span>teamStatsSub[[<span class="dv">1</span>]][[<span class="st">&quot;splits&quot;</span>]][[<span class="dv">1</span>]] </span>
+<span id="cb18-137"><a href="#cb18-137"></a>    </span>
+<span id="cb18-138"><a href="#cb18-138"></a>      longRanks &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">statName =</span> <span class="kw">colnames</span>(wideRanks[, <span class="dv">1</span><span class="op">:</span><span class="dv">31</span>]), <span class="dt">statValue =</span> <span class="kw">unlist</span>(wideRanks[<span class="dv">1</span>, <span class="dv">1</span><span class="op">:</span><span class="dv">31</span>]), <span class="dt">statRank =</span> <span class="kw">unlist</span>(wideRanks[<span class="dv">2</span>, <span class="dv">1</span><span class="op">:</span><span class="dv">31</span>]))</span>
+<span id="cb18-139"><a href="#cb18-139"></a>  </span>
+<span id="cb18-140"><a href="#cb18-140"></a>      ranks &lt;-<span class="st"> </span><span class="kw">cbind</span>(longRanks, wideRanks[<span class="dv">1</span>, <span class="dv">32</span><span class="op">:</span><span class="dv">34</span>], <span class="dt">row.names =</span> <span class="ot">NULL</span>)</span>
+<span id="cb18-141"><a href="#cb18-141"></a>      </span>
+<span id="cb18-142"><a href="#cb18-142"></a>      ranks &lt;-<span class="st"> </span><span class="kw">cbind</span>(ranks, teamStatsSub[[<span class="dv">1</span>]], <span class="dt">row.names =</span> <span class="ot">NULL</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;splits&quot;</span>))</span>
+<span id="cb18-143"><a href="#cb18-143"></a>    </span>
+<span id="cb18-144"><a href="#cb18-144"></a>      ranks &lt;-<span class="st"> </span>ranks <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">rename</span>(<span class="st">&quot;name&quot;</span> =<span class="st"> &quot;team.name&quot;</span>) </span>
+<span id="cb18-145"><a href="#cb18-145"></a>    </span>
+<span id="cb18-146"><a href="#cb18-146"></a>      teamStats &lt;-<span class="st"> </span><span class="kw">left_join</span>(ranks, teamStats, <span class="dt">by =</span> <span class="st">&quot;name&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;teamStats&quot;</span>))</span>
+<span id="cb18-147"><a href="#cb18-147"></a>      </span>
+<span id="cb18-148"><a href="#cb18-148"></a>      statsFull &lt;-<span class="st"> </span><span class="kw">rbind</span>(statsFull, teamStats)</span>
+<span id="cb18-149"><a href="#cb18-149"></a>    } </span>
+<span id="cb18-150"><a href="#cb18-150"></a>    <span class="kw">return</span>(statsFull) </span>
+<span id="cb18-151"><a href="#cb18-151"></a>  } </span>
+<span id="cb18-152"><a href="#cb18-152"></a>  </span>
+<span id="cb18-153"><a href="#cb18-153"></a>  <span class="co"># MODIFIER</span></span>
+<span id="cb18-154"><a href="#cb18-154"></a>  <span class="co"># team.roster&amp;season</span></span>
+<span id="cb18-155"><a href="#cb18-155"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;team.roster&amp;season&quot;</span>){</span>
+<span id="cb18-156"><a href="#cb18-156"></a>    stats &lt;-<span class="st"> </span><span class="kw">getStatsTable</span>(modifier, seasonId) </span>
+<span id="cb18-157"><a href="#cb18-157"></a>    </span>
+<span id="cb18-158"><a href="#cb18-158"></a>    roster &lt;-<span class="st"> </span>stats[[<span class="st">&quot;roster.roster&quot;</span>]]</span>
+<span id="cb18-159"><a href="#cb18-159"></a>    </span>
+<span id="cb18-160"><a href="#cb18-160"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(roster)){</span>
+<span id="cb18-161"><a href="#cb18-161"></a>      roster[[i]]<span class="op">$</span>name &lt;-<span class="st"> </span>stats[[<span class="st">&quot;name&quot;</span>]][[i]]</span>
+<span id="cb18-162"><a href="#cb18-162"></a>    }</span>
+<span id="cb18-163"><a href="#cb18-163"></a>    </span>
+<span id="cb18-164"><a href="#cb18-164"></a>    roster &lt;-<span class="st"> </span><span class="kw">do.call</span>(rbind, roster)</span>
+<span id="cb18-165"><a href="#cb18-165"></a>    statsFlatten &lt;-<span class="st"> </span><span class="kw">left_join</span>(roster, stats, <span class="dt">by =</span> <span class="st">&quot;name&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(<span class="st">&quot;roster.roster&quot;</span>))</span>
+<span id="cb18-166"><a href="#cb18-166"></a>    <span class="kw">return</span>(statsFlatten)</span>
+<span id="cb18-167"><a href="#cb18-167"></a>  }</span>
+<span id="cb18-168"><a href="#cb18-168"></a>  </span>
+<span id="cb18-169"><a href="#cb18-169"></a>  <span class="co"># MODIFIER</span></span>
+<span id="cb18-170"><a href="#cb18-170"></a>  <span class="co"># teamId</span></span>
+<span id="cb18-171"><a href="#cb18-171"></a>  <span class="cf">if</span>(modifier <span class="op">==</span><span class="st"> &quot;teamId&quot;</span>){</span>
+<span id="cb18-172"><a href="#cb18-172"></a>    stats &lt;-<span class="st"> </span><span class="kw">getStatsTable</span>(modifier, <span class="dt">teamIds =</span> teamIds) </span>
+<span id="cb18-173"><a href="#cb18-173"></a>    <span class="kw">return</span>(stats) </span>
+<span id="cb18-174"><a href="#cb18-174"></a>  }</span>
+<span id="cb18-175"><a href="#cb18-175"></a>  </span>
+<span id="cb18-176"><a href="#cb18-176"></a>} </span>
+<span id="cb18-177"><a href="#cb18-177"></a></span>
+<span id="cb18-178"><a href="#cb18-178"></a><span class="kw">teamStats</span>()</span></code></pre></div>
+<pre><code>## # A tibble: 31 x 29
+##       id name  link  abbreviation
+##    &lt;int&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;       
+##  1     1 New ~ /api~ NJD         
+##  2     2 New ~ /api~ NYI         
+##  3     3 New ~ /api~ NYR         
+##  4     4 Phil~ /api~ PHI         
+##  5     5 Pitt~ /api~ PIT         
+##  6     6 Bost~ /api~ BOS         
+##  7     7 Buff~ /api~ BUF         
+##  8     8 Mont~ /api~ MTL         
+##  9     9 Otta~ /api~ OTT         
+## 10    10 Toro~ /api~ TOR         
+## # ... with 21 more rows, and 25 more
+## #   variables: teamName &lt;chr&gt;,
+## #   locationName &lt;chr&gt;,
+## #   firstYearOfPlay &lt;chr&gt;,
+## #   shortName &lt;chr&gt;,
+## #   officialSiteUrl &lt;chr&gt;,
+## #   franchiseId &lt;int&gt;, active &lt;lgl&gt;,
+## #   venue.name &lt;chr&gt;,
+## #   venue.link &lt;chr&gt;,
+## #   venue.city &lt;chr&gt;, venue.id &lt;int&gt;,
+## #   venue.timeZone.id &lt;chr&gt;,
+## #   venue.timeZone.offset &lt;int&gt;,
+## #   venue.timeZone.tz &lt;chr&gt;,
+## #   division.id &lt;int&gt;,
+## #   division.name &lt;chr&gt;,
+## #   division.nameShort &lt;chr&gt;,
+## #   division.link &lt;chr&gt;,
+## #   division.abbreviation &lt;chr&gt;,
+## #   conference.id &lt;int&gt;,
+## #   conference.name &lt;chr&gt;,
+## #   conference.link &lt;chr&gt;,
+## #   franchise.franchiseId &lt;int&gt;,
+## #   franchise.teamName &lt;chr&gt;,
+## #   franchise.link &lt;chr&gt;
+</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1"></a><span class="kw">teamStats</span>(<span class="dt">modifier =</span> <span class="st">&quot;team.schedule.previous&quot;</span>)</span></code></pre></div>
+<pre><code>## # A tibble: 31 x 68
+##       id name  link.x abbreviation
+##    &lt;int&gt; &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt;       
+##  1     1 New ~ /api/~ NJD         
+##  2     2 New ~ /api/~ NYI         
+##  3     3 New ~ /api/~ NYR         
+##  4     4 Phil~ /api/~ PHI         
+##  5     5 Pitt~ /api/~ PIT         
+##  6     6 Bost~ /api/~ BOS         
+##  7     7 Buff~ /api/~ BUF         
+##  8     8 Mont~ /api/~ MTL         
+##  9     9 Otta~ /api/~ OTT         
+## 10    10 Toro~ /api/~ TOR         
+## # ... with 21 more rows, and 64 more
+## #   variables: teamName &lt;chr&gt;,
+## #   locationName &lt;chr&gt;,
+## #   firstYearOfPlay &lt;chr&gt;,
+## #   shortName &lt;chr&gt;,
+## #   officialSiteUrl &lt;chr&gt;,
+## #   franchiseId &lt;int&gt;, active &lt;lgl&gt;,
+## #   venue.name.x &lt;chr&gt;,
+## #   venue.link.x &lt;chr&gt;,
+## #   venue.city &lt;chr&gt;,
+## #   venue.id.x &lt;int&gt;,
+## #   venue.timeZone.id &lt;chr&gt;,
+## #   venue.timeZone.offset &lt;int&gt;,
+## #   venue.timeZone.tz &lt;chr&gt;,
+## #   division.id &lt;int&gt;,
+## #   division.name &lt;chr&gt;,
+## #   division.nameShort &lt;chr&gt;,
+## #   division.link &lt;chr&gt;,
+## #   division.abbreviation &lt;chr&gt;,
+## #   conference.id &lt;int&gt;,
+## #   conference.name &lt;chr&gt;,
+## #   conference.link &lt;chr&gt;,
+## #   franchise.franchiseId &lt;int&gt;,
+## #   franchise.teamName &lt;chr&gt;,
+## #   franchise.link &lt;chr&gt;,
+## #   previousGameSchedule.totalItems &lt;int&gt;,
+## #   previousGameSchedule.totalEvents &lt;int&gt;,
+## #   previousGameSchedule.totalGames &lt;int&gt;,
+## #   previousGameSchedule.totalMatches &lt;int&gt;,
+## #   date &lt;chr&gt;, totalItems &lt;int&gt;,
+## #   totalEvents &lt;int&gt;,
+## #   totalGames &lt;int&gt;,
+## #   totalMatches &lt;int&gt;, gamePk &lt;int&gt;,
+## #   link.y &lt;chr&gt;, gameType &lt;chr&gt;,
+## #   season &lt;chr&gt;, gameDate &lt;chr&gt;,
+## #   status.abstractGameState &lt;chr&gt;,
+## #   status.codedGameState &lt;chr&gt;,
+## #   status.detailedState &lt;chr&gt;,
+## #   status.statusCode &lt;chr&gt;,
+## #   status.startTimeTBD &lt;lgl&gt;,
+## #   teams.away.score &lt;int&gt;,
+## #   teams.away.leagueRecord.wins &lt;int&gt;,
+## #   teams.away.leagueRecord.losses &lt;int&gt;,
+## #   teams.away.leagueRecord.ot &lt;int&gt;,
+## #   teams.away.leagueRecord.type &lt;chr&gt;,
+## #   teams.away.team.id &lt;int&gt;,
+## #   teams.away.team.name &lt;chr&gt;,
+## #   teams.away.team.link &lt;chr&gt;,
+## #   teams.home.score &lt;int&gt;,
+## #   teams.home.leagueRecord.wins &lt;int&gt;,
+## #   teams.home.leagueRecord.losses &lt;int&gt;,
+## #   teams.home.leagueRecord.ot &lt;int&gt;,
+## #   teams.home.leagueRecord.type &lt;chr&gt;,
+## #   teams.home.team.id &lt;int&gt;,
+## #   teams.home.team.name &lt;chr&gt;,
+## #   teams.home.team.link &lt;chr&gt;,
+## #   venue.name.y &lt;chr&gt;,
+## #   venue.link.y &lt;chr&gt;,
+## #   content.link &lt;chr&gt;,
+## #   venue.id.y &lt;int&gt;
+</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1"></a><span class="kw">teamStats</span>(<span class="dt">modifier =</span> <span class="st">&quot;team.stats&quot;</span>)</span></code></pre></div>
+<pre><code>##                       statName
+## 1             stat.gamesPlayed
+## 2                    stat.wins
+## 3                  stat.losses
+## 4                      stat.ot
+## 5                     stat.pts
+## 6                  stat.ptPctg
+## 7            stat.goalsPerGame
+## 8     stat.goalsAgainstPerGame
+## 9              stat.evGGARatio
+## 10    stat.powerPlayPercentage
+## 11         stat.powerPlayGoals
+## 12  stat.powerPlayGoalsAgainst
+## 13 stat.powerPlayOpportunities
+## 14  stat.penaltyKillPercentage
+## 15           stat.shotsPerGame
+## 16           stat.shotsAllowed
+## 17          stat.winScoreFirst
+## 18       stat.winOppScoreFirst
+## 19        stat.winLeadFirstPer
+## 20       stat.winLeadSecondPer
+## 21         stat.winOutshootOpp
+## 22        stat.winOutshotByOpp
+## 23          stat.faceOffsTaken
+## 24            stat.faceOffsWon
+## 25           stat.faceOffsLost
+## 26   stat.faceOffWinPercentage
+##    statValue statRank team.id
+## 1         69     &lt;NA&gt;       1
+## 2         28     29th       1
+## 3         29     23rd       1
+## 4         12      3rd       1
+## 5         68     25th       1
+## 6       49.3     25th       1
+## 7      2.681     24th       1
+## 8      3.246     29th       1
+## 9     0.7821     29th       1
+## 10      17.9     21st       1
+## 11        42     18th       1
+## 12        39     14th       1
+## 13       234      3rd       1
+## 14      82.3      7th       1
+## 15   30.6812     22nd       1
+## 16   32.6957     26th       1
+## 17     0.484     29th       1
+## 18     0.342     10th       1
+## 19       0.5     30th       1
+## 20     0.704     28th       1
+## 21     0.417     24th       1
+## 22     0.381     24th       1
+## 23      3990     16th       1
+## 24      1869     27th       1
+## 25      2121     30th       1
+## 26      46.8     29th       1
+##                 name       team.link
+## 1  New Jersey Devils /api/v1/teams/1
+## 2  New Jersey Devils /api/v1/teams/1
+## 3  New Jersey Devils /api/v1/teams/1
+## 4  New Jersey Devils /api/v1/teams/1
+## 5  New Jersey Devils /api/v1/teams/1
+## 6  New Jersey Devils /api/v1/teams/1
+## 7  New Jersey Devils /api/v1/teams/1
+## 8  New Jersey Devils /api/v1/teams/1
+## 9  New Jersey Devils /api/v1/teams/1
+## 10 New Jersey Devils /api/v1/teams/1
+## 11 New Jersey Devils /api/v1/teams/1
+## 12 New Jersey Devils /api/v1/teams/1
+## 13 New Jersey Devils /api/v1/teams/1
+## 14 New Jersey Devils /api/v1/teams/1
+## 15 New Jersey Devils /api/v1/teams/1
+## 16 New Jersey Devils /api/v1/teams/1
+## 17 New Jersey Devils /api/v1/teams/1
+## 18 New Jersey Devils /api/v1/teams/1
+## 19 New Jersey Devils /api/v1/teams/1
+## 20 New Jersey Devils /api/v1/teams/1
+## 21 New Jersey Devils /api/v1/teams/1
+## 22 New Jersey Devils /api/v1/teams/1
+## 23 New Jersey Devils /api/v1/teams/1
+## 24 New Jersey Devils /api/v1/teams/1
+## 25 New Jersey Devils /api/v1/teams/1
+## 26 New Jersey Devils /api/v1/teams/1
+##     type.displayName type.gameType.id
+## 1  statsSingleSeason                R
+## 2  statsSingleSeason                R
+## 3  statsSingleSeason                R
+## 4  statsSingleSeason                R
+## 5  statsSingleSeason                R
+## 6  statsSingleSeason                R
+## 7  statsSingleSeason                R
+## 8  statsSingleSeason                R
+## 9  statsSingleSeason                R
+## 10 statsSingleSeason                R
+## 11 statsSingleSeason                R
+## 12 statsSingleSeason                R
+## 13 statsSingleSeason                R
+## 14 statsSingleSeason                R
+## 15 statsSingleSeason                R
+## 16 statsSingleSeason                R
+## 17 statsSingleSeason                R
+## 18 statsSingleSeason                R
+## 19 statsSingleSeason                R
+## 20 statsSingleSeason                R
+## 21 statsSingleSeason                R
+## 22 statsSingleSeason                R
+## 23 statsSingleSeason                R
+## 24 statsSingleSeason                R
+## 25 statsSingleSeason                R
+## 26 statsSingleSeason                R
+##    type.gameType.description
+## 1             Regular season
+## 2             Regular season
+## 3             Regular season
+## 4             Regular season
+## 5             Regular season
+## 6             Regular season
+## 7             Regular season
+## 8             Regular season
+## 9             Regular season
+## 10            Regular season
+## 11            Regular season
+## 12            Regular season
+## 13            Regular season
+## 14            Regular season
+## 15            Regular season
+## 16            Regular season
+## 17            Regular season
+## 18            Regular season
+## 19            Regular season
+## 20            Regular season
+## 21            Regular season
+## 22            Regular season
+## 23            Regular season
+## 24            Regular season
+## 25            Regular season
+## 26            Regular season
+##    type.gameType.postseason id
+## 1                     FALSE  1
+## 2                     FALSE  1
+## 3                     FALSE  1
+## 4                     FALSE  1
+## 5                     FALSE  1
+## 6                     FALSE  1
+## 7                     FALSE  1
+## 8                     FALSE  1
+## 9                     FALSE  1
+## 10                    FALSE  1
+## 11                    FALSE  1
+## 12                    FALSE  1
+## 13                    FALSE  1
+## 14                    FALSE  1
+## 15                    FALSE  1
+## 16                    FALSE  1
+## 17                    FALSE  1
+## 18                    FALSE  1
+## 19                    FALSE  1
+## 20                    FALSE  1
+## 21                    FALSE  1
+## 22                    FALSE  1
+## 23                    FALSE  1
+## 24                    FALSE  1
+## 25                    FALSE  1
+## 26                    FALSE  1
+##               link abbreviation
+## 1  /api/v1/teams/1          NJD
+## 2  /api/v1/teams/1          NJD
+## 3  /api/v1/teams/1          NJD
+## 4  /api/v1/teams/1          NJD
+## 5  /api/v1/teams/1          NJD
+## 6  /api/v1/teams/1          NJD
+## 7  /api/v1/teams/1          NJD
+## 8  /api/v1/teams/1          NJD
+## 9  /api/v1/teams/1          NJD
+## 10 /api/v1/teams/1          NJD
+## 11 /api/v1/teams/1          NJD
+## 12 /api/v1/teams/1          NJD
+## 13 /api/v1/teams/1          NJD
+## 14 /api/v1/teams/1          NJD
+## 15 /api/v1/teams/1          NJD
+## 16 /api/v1/teams/1          NJD
+## 17 /api/v1/teams/1          NJD
+## 18 /api/v1/teams/1          NJD
+## 19 /api/v1/teams/1          NJD
+## 20 /api/v1/teams/1          NJD
+## 21 /api/v1/teams/1          NJD
+## 22 /api/v1/teams/1          NJD
+## 23 /api/v1/teams/1          NJD
+## 24 /api/v1/teams/1          NJD
+## 25 /api/v1/teams/1          NJD
+## 26 /api/v1/teams/1          NJD
+##    teamName locationName
+## 1    Devils   New Jersey
+## 2    Devils   New Jersey
+## 3    Devils   New Jersey
+## 4    Devils   New Jersey
+## 5    Devils   New Jersey
+## 6    Devils   New Jersey
+## 7    Devils   New Jersey
+## 8    Devils   New Jersey
+## 9    Devils   New Jersey
+## 10   Devils   New Jersey
+## 11   Devils   New Jersey
+## 12   Devils   New Jersey
+## 13   Devils   New Jersey
+## 14   Devils   New Jersey
+## 15   Devils   New Jersey
+## 16   Devils   New Jersey
+## 17   Devils   New Jersey
+## 18   Devils   New Jersey
+## 19   Devils   New Jersey
+## 20   Devils   New Jersey
+## 21   Devils   New Jersey
+## 22   Devils   New Jersey
+## 23   Devils   New Jersey
+## 24   Devils   New Jersey
+## 25   Devils   New Jersey
+## 26   Devils   New Jersey
+##    firstYearOfPlay  shortName
+## 1             1982 New Jersey
+## 2             1982 New Jersey
+## 3             1982 New Jersey
+## 4             1982 New Jersey
+## 5             1982 New Jersey
+## 6             1982 New Jersey
+## 7             1982 New Jersey
+## 8             1982 New Jersey
+## 9             1982 New Jersey
+## 10            1982 New Jersey
+## 11            1982 New Jersey
+## 12            1982 New Jersey
+## 13            1982 New Jersey
+## 14            1982 New Jersey
+## 15            1982 New Jersey
+## 16            1982 New Jersey
+## 17            1982 New Jersey
+## 18            1982 New Jersey
+## 19            1982 New Jersey
+## 20            1982 New Jersey
+## 21            1982 New Jersey
+## 22            1982 New Jersey
+## 23            1982 New Jersey
+## 24            1982 New Jersey
+## 25            1982 New Jersey
+## 26            1982 New Jersey
+##                    officialSiteUrl
+## 1  http://www.newjerseydevils.com/
+## 2  http://www.newjerseydevils.com/
+## 3  http://www.newjerseydevils.com/
+## 4  http://www.newjerseydevils.com/
+## 5  http://www.newjerseydevils.com/
+## 6  http://www.newjerseydevils.com/
+## 7  http://www.newjerseydevils.com/
+## 8  http://www.newjerseydevils.com/
+## 9  http://www.newjerseydevils.com/
+## 10 http://www.newjerseydevils.com/
+## 11 http://www.newjerseydevils.com/
+## 12 http://www.newjerseydevils.com/
+## 13 http://www.newjerseydevils.com/
+## 14 http://www.newjerseydevils.com/
+## 15 http://www.newjerseydevils.com/
+## 16 http://www.newjerseydevils.com/
+## 17 http://www.newjerseydevils.com/
+## 18 http://www.newjerseydevils.com/
+## 19 http://www.newjerseydevils.com/
+## 20 http://www.newjerseydevils.com/
+## 21 http://www.newjerseydevils.com/
+## 22 http://www.newjerseydevils.com/
+## 23 http://www.newjerseydevils.com/
+## 24 http://www.newjerseydevils.com/
+## 25 http://www.newjerseydevils.com/
+## 26 http://www.newjerseydevils.com/
+##    franchiseId active
+## 1           23   TRUE
+## 2           23   TRUE
+## 3           23   TRUE
+## 4           23   TRUE
+## 5           23   TRUE
+## 6           23   TRUE
+## 7           23   TRUE
+## 8           23   TRUE
+## 9           23   TRUE
+## 10          23   TRUE
+## 11          23   TRUE
+## 12          23   TRUE
+## 13          23   TRUE
+## 14          23   TRUE
+## 15          23   TRUE
+## 16          23   TRUE
+## 17          23   TRUE
+## 18          23   TRUE
+## 19          23   TRUE
+## 20          23   TRUE
+## 21          23   TRUE
+## 22          23   TRUE
+## 23          23   TRUE
+## 24          23   TRUE
+## 25          23   TRUE
+## 26          23   TRUE
+##           venue.name
+## 1  Prudential Center
+## 2  Prudential Center
+## 3  Prudential Center
+## 4  Prudential Center
+## 5  Prudential Center
+## 6  Prudential Center
+## 7  Prudential Center
+## 8  Prudential Center
+## 9  Prudential Center
+## 10 Prudential Center
+## 11 Prudential Center
+## 12 Prudential Center
+## 13 Prudential Center
+## 14 Prudential Center
+## 15 Prudential Center
+## 16 Prudential Center
+## 17 Prudential Center
+## 18 Prudential Center
+## 19 Prudential Center
+## 20 Prudential Center
+## 21 Prudential Center
+## 22 Prudential Center
+## 23 Prudential Center
+## 24 Prudential Center
+## 25 Prudential Center
+## 26 Prudential Center
+##             venue.link venue.city
+## 1  /api/v1/venues/null     Newark
+## 2  /api/v1/venues/null     Newark
+## 3  /api/v1/venues/null     Newark
+## 4  /api/v1/venues/null     Newark
+## 5  /api/v1/venues/null     Newark
+## 6  /api/v1/venues/null     Newark
+## 7  /api/v1/venues/null     Newark
+## 8  /api/v1/venues/null     Newark
+## 9  /api/v1/venues/null     Newark
+## 10 /api/v1/venues/null     Newark
+## 11 /api/v1/venues/null     Newark
+## 12 /api/v1/venues/null     Newark
+## 13 /api/v1/venues/null     Newark
+## 14 /api/v1/venues/null     Newark
+## 15 /api/v1/venues/null     Newark
+## 16 /api/v1/venues/null     Newark
+## 17 /api/v1/venues/null     Newark
+## 18 /api/v1/venues/null     Newark
+## 19 /api/v1/venues/null     Newark
+## 20 /api/v1/venues/null     Newark
+## 21 /api/v1/venues/null     Newark
+## 22 /api/v1/venues/null     Newark
+## 23 /api/v1/venues/null     Newark
+## 24 /api/v1/venues/null     Newark
+## 25 /api/v1/venues/null     Newark
+## 26 /api/v1/venues/null     Newark
+##    venue.id venue.timeZone.id
+## 1        NA  America/New_York
+## 2        NA  America/New_York
+## 3        NA  America/New_York
+## 4        NA  America/New_York
+## 5        NA  America/New_York
+## 6        NA  America/New_York
+## 7        NA  America/New_York
+## 8        NA  America/New_York
+## 9        NA  America/New_York
+## 10       NA  America/New_York
+## 11       NA  America/New_York
+## 12       NA  America/New_York
+## 13       NA  America/New_York
+## 14       NA  America/New_York
+## 15       NA  America/New_York
+## 16       NA  America/New_York
+## 17       NA  America/New_York
+## 18       NA  America/New_York
+## 19       NA  America/New_York
+## 20       NA  America/New_York
+## 21       NA  America/New_York
+## 22       NA  America/New_York
+## 23       NA  America/New_York
+## 24       NA  America/New_York
+## 25       NA  America/New_York
+## 26       NA  America/New_York
+##    venue.timeZone.offset
+## 1                     -4
+## 2                     -4
+## 3                     -4
+## 4                     -4
+## 5                     -4
+## 6                     -4
+## 7                     -4
+## 8                     -4
+## 9                     -4
+## 10                    -4
+## 11                    -4
+## 12                    -4
+## 13                    -4
+## 14                    -4
+## 15                    -4
+## 16                    -4
+## 17                    -4
+## 18                    -4
+## 19                    -4
+## 20                    -4
+## 21                    -4
+## 22                    -4
+## 23                    -4
+## 24                    -4
+## 25                    -4
+## 26                    -4
+##    venue.timeZone.tz division.id
+## 1                EDT          18
+## 2                EDT          18
+## 3                EDT          18
+## 4                EDT          18
+## 5                EDT          18
+## 6                EDT          18
+## 7                EDT          18
+## 8                EDT          18
+## 9                EDT          18
+## 10               EDT          18
+## 11               EDT          18
+## 12               EDT          18
+## 13               EDT          18
+## 14               EDT          18
+## 15               EDT          18
+## 16               EDT          18
+## 17               EDT          18
+## 18               EDT          18
+## 19               EDT          18
+## 20               EDT          18
+## 21               EDT          18
+## 22               EDT          18
+## 23               EDT          18
+## 24               EDT          18
+## 25               EDT          18
+## 26               EDT          18
+##    division.name division.nameShort
+## 1   Metropolitan              Metro
+## 2   Metropolitan              Metro
+## 3   Metropolitan              Metro
+## 4   Metropolitan              Metro
+## 5   Metropolitan              Metro
+## 6   Metropolitan              Metro
+## 7   Metropolitan              Metro
+## 8   Metropolitan              Metro
+## 9   Metropolitan              Metro
+## 10  Metropolitan              Metro
+## 11  Metropolitan              Metro
+## 12  Metropolitan              Metro
+## 13  Metropolitan              Metro
+## 14  Metropolitan              Metro
+## 15  Metropolitan              Metro
+## 16  Metropolitan              Metro
+## 17  Metropolitan              Metro
+## 18  Metropolitan              Metro
+## 19  Metropolitan              Metro
+## 20  Metropolitan              Metro
+## 21  Metropolitan              Metro
+## 22  Metropolitan              Metro
+## 23  Metropolitan              Metro
+## 24  Metropolitan              Metro
+## 25  Metropolitan              Metro
+## 26  Metropolitan              Metro
+##           division.link
+## 1  /api/v1/divisions/18
+## 2  /api/v1/divisions/18
+## 3  /api/v1/divisions/18
+## 4  /api/v1/divisions/18
+## 5  /api/v1/divisions/18
+## 6  /api/v1/divisions/18
+## 7  /api/v1/divisions/18
+## 8  /api/v1/divisions/18
+## 9  /api/v1/divisions/18
+## 10 /api/v1/divisions/18
+## 11 /api/v1/divisions/18
+## 12 /api/v1/divisions/18
+## 13 /api/v1/divisions/18
+## 14 /api/v1/divisions/18
+## 15 /api/v1/divisions/18
+## 16 /api/v1/divisions/18
+## 17 /api/v1/divisions/18
+## 18 /api/v1/divisions/18
+## 19 /api/v1/divisions/18
+## 20 /api/v1/divisions/18
+## 21 /api/v1/divisions/18
+## 22 /api/v1/divisions/18
+## 23 /api/v1/divisions/18
+## 24 /api/v1/divisions/18
+## 25 /api/v1/divisions/18
+## 26 /api/v1/divisions/18
+##    division.abbreviation conference.id
+## 1                      M             6
+## 2                      M             6
+## 3                      M             6
+## 4                      M             6
+## 5                      M             6
+## 6                      M             6
+## 7                      M             6
+## 8                      M             6
+## 9                      M             6
+## 10                     M             6
+## 11                     M             6
+## 12                     M             6
+## 13                     M             6
+## 14                     M             6
+## 15                     M             6
+## 16                     M             6
+## 17                     M             6
+## 18                     M             6
+## 19                     M             6
+## 20                     M             6
+## 21                     M             6
+## 22                     M             6
+## 23                     M             6
+## 24                     M             6
+## 25                     M             6
+## 26                     M             6
+##    conference.name
+## 1          Eastern
+## 2          Eastern
+## 3          Eastern
+## 4          Eastern
+## 5          Eastern
+## 6          Eastern
+## 7          Eastern
+## 8          Eastern
+## 9          Eastern
+## 10         Eastern
+## 11         Eastern
+## 12         Eastern
+## 13         Eastern
+## 14         Eastern
+## 15         Eastern
+## 16         Eastern
+## 17         Eastern
+## 18         Eastern
+## 19         Eastern
+## 20         Eastern
+## 21         Eastern
+## 22         Eastern
+## 23         Eastern
+## 24         Eastern
+## 25         Eastern
+## 26         Eastern
+##          conference.link
+## 1  /api/v1/conferences/6
+## 2  /api/v1/conferences/6
+## 3  /api/v1/conferences/6
+## 4  /api/v1/conferences/6
+## 5  /api/v1/conferences/6
+## 6  /api/v1/conferences/6
+## 7  /api/v1/conferences/6
+## 8  /api/v1/conferences/6
+## 9  /api/v1/conferences/6
+## 10 /api/v1/conferences/6
+## 11 /api/v1/conferences/6
+## 12 /api/v1/conferences/6
+## 13 /api/v1/conferences/6
+## 14 /api/v1/conferences/6
+## 15 /api/v1/conferences/6
+## 16 /api/v1/conferences/6
+## 17 /api/v1/conferences/6
+## 18 /api/v1/conferences/6
+## 19 /api/v1/conferences/6
+## 20 /api/v1/conferences/6
+## 21 /api/v1/conferences/6
+## 22 /api/v1/conferences/6
+## 23 /api/v1/conferences/6
+## 24 /api/v1/conferences/6
+## 25 /api/v1/conferences/6
+## 26 /api/v1/conferences/6
+##    franchise.franchiseId
+## 1                     23
+## 2                     23
+## 3                     23
+## 4                     23
+## 5                     23
+## 6                     23
+## 7                     23
+## 8                     23
+## 9                     23
+## 10                    23
+## 11                    23
+## 12                    23
+## 13                    23
+## 14                    23
+## 15                    23
+## 16                    23
+## 17                    23
+## 18                    23
+## 19                    23
+## 20                    23
+## 21                    23
+## 22                    23
+## 23                    23
+## 24                    23
+## 25                    23
+## 26                    23
+##    franchise.teamName
+## 1              Devils
+## 2              Devils
+## 3              Devils
+## 4              Devils
+## 5              Devils
+## 6              Devils
+## 7              Devils
+## 8              Devils
+## 9              Devils
+## 10             Devils
+## 11             Devils
+## 12             Devils
+## 13             Devils
+## 14             Devils
+## 15             Devils
+## 16             Devils
+## 17             Devils
+## 18             Devils
+## 19             Devils
+## 20             Devils
+## 21             Devils
+## 22             Devils
+## 23             Devils
+## 24             Devils
+## 25             Devils
+## 26             Devils
+##           franchise.link
+## 1  /api/v1/franchises/23
+## 2  /api/v1/franchises/23
+## 3  /api/v1/franchises/23
+## 4  /api/v1/franchises/23
+## 5  /api/v1/franchises/23
+## 6  /api/v1/franchises/23
+## 7  /api/v1/franchises/23
+## 8  /api/v1/franchises/23
+## 9  /api/v1/franchises/23
+## 10 /api/v1/franchises/23
+## 11 /api/v1/franchises/23
+## 12 /api/v1/franchises/23
+## 13 /api/v1/franchises/23
+## 14 /api/v1/franchises/23
+## 15 /api/v1/franchises/23
+## 16 /api/v1/franchises/23
+## 17 /api/v1/franchises/23
+## 18 /api/v1/franchises/23
+## 19 /api/v1/franchises/23
+## 20 /api/v1/franchises/23
+## 21 /api/v1/franchises/23
+## 22 /api/v1/franchises/23
+## 23 /api/v1/franchises/23
+## 24 /api/v1/franchises/23
+## 25 /api/v1/franchises/23
+## 26 /api/v1/franchises/23
+##  [ reached &#39;max&#39; / getOption(&quot;max.print&quot;) -- omitted 935 rows ]
+</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1"></a><span class="kw">teamStats</span>(<span class="dt">modifier =</span> <span class="st">&quot;team.roster&amp;season&quot;</span>, <span class="dt">seasonId =</span> <span class="st">&quot;20182019&quot;</span>) </span></code></pre></div>
+<pre><code>##    jerseyNumber person.id
+## 1             9   8470619
+## 2            18   8471226
+## 3            19   8471233
+## 4             4   8472382
+## 5             2   8473468
+## 6            21   8473933
+## 7            34   8474025
+## 8            90   8475149
+## 9            21   8475151
+## 10           45   8475222
+## 11           91   8475791
+## 12           20   8475844
+## 13           56   8476370
+## 14           20   8476399
+## 15           32   8476465
+## 16           11   8476474
+## 17           29   8476545
+## 18           28   8476923
+## 19            5   8476941
+## 20            8   8477355
+## 21           44   8477425
+## 22            3   8477463
+## 23           25   8477509
+## 24           15   8477520
+## 25           47   8477961
+## 26           40   8477972
+##       person.fullName
+## 1         Brian Boyle
+## 2       Drew Stafford
+## 3        Travis Zajac
+## 4         Andy Greene
+## 5          Eric Gryba
+## 6         Ben Lovejoy
+## 7       Eric Tangradi
+## 8    Marcus Johansson
+## 9       Kyle Palmieri
+## 10       Sami Vatanen
+## 11        Taylor Hall
+## 12     Kenny Agostino
+## 13      Blake Pietila
+## 14      Blake Coleman
+## 15        Ryan Murphy
+## 16      Stefan Noesen
+## 17     Kurtis Gabriel
+## 18     Damon Severson
+## 19     Connor Carrick
+## 20       Will Butcher
+## 21         Miles Wood
+## 22     Steven Santini
+## 23      Mirco Mueller
+## 24 Jean-Sebastien Dea
+## 25   John Quenneville
+## 26        Josh Jacobs
+##               person.link
+## 1  /api/v1/people/8470619
+## 2  /api/v1/people/8471226
+## 3  /api/v1/people/8471233
+## 4  /api/v1/people/8472382
+## 5  /api/v1/people/8473468
+## 6  /api/v1/people/8473933
+## 7  /api/v1/people/8474025
+## 8  /api/v1/people/8475149
+## 9  /api/v1/people/8475151
+## 10 /api/v1/people/8475222
+## 11 /api/v1/people/8475791
+## 12 /api/v1/people/8475844
+## 13 /api/v1/people/8476370
+## 14 /api/v1/people/8476399
+## 15 /api/v1/people/8476465
+## 16 /api/v1/people/8476474
+## 17 /api/v1/people/8476545
+## 18 /api/v1/people/8476923
+## 19 /api/v1/people/8476941
+## 20 /api/v1/people/8477355
+## 21 /api/v1/people/8477425
+## 22 /api/v1/people/8477463
+## 23 /api/v1/people/8477509
+## 24 /api/v1/people/8477520
+## 25 /api/v1/people/8477961
+## 26 /api/v1/people/8477972
+##    position.code position.name
+## 1              C        Center
+## 2              R    Right Wing
+## 3              C        Center
+## 4              D    Defenseman
+## 5              D    Defenseman
+## 6              D    Defenseman
+## 7              L     Left Wing
+## 8              L     Left Wing
+## 9              R    Right Wing
+## 10             D    Defenseman
+## 11             L     Left Wing
+## 12             L     Left Wing
+## 13             L     Left Wing
+## 14             C        Center
+## 15             D    Defenseman
+## 16             R    Right Wing
+## 17             R    Right Wing
+## 18             D    Defenseman
+## 19             D    Defenseman
+## 20             D    Defenseman
+## 21             L     Left Wing
+## 22             D    Defenseman
+## 23             D    Defenseman
+## 24             C        Center
+## 25             C        Center
+## 26             D    Defenseman
+##    position.type position.abbreviation
+## 1        Forward                     C
+## 2        Forward                    RW
+## 3        Forward                     C
+## 4     Defenseman                     D
+## 5     Defenseman                     D
+## 6     Defenseman                     D
+## 7        Forward                    LW
+## 8        Forward                    LW
+## 9        Forward                    RW
+## 10    Defenseman                     D
+## 11       Forward                    LW
+## 12       Forward                    LW
+## 13       Forward                    LW
+## 14       Forward                     C
+## 15    Defenseman                     D
+## 16       Forward                    RW
+## 17       Forward                    RW
+## 18    Defenseman                     D
+## 19    Defenseman                     D
+## 20    Defenseman                     D
+## 21       Forward                    LW
+## 22    Defenseman                     D
+## 23    Defenseman                     D
+## 24       Forward                     C
+## 25       Forward                     C
+## 26    Defenseman                     D
+##                 name id
+## 1  New Jersey Devils  1
+## 2  New Jersey Devils  1
+## 3  New Jersey Devils  1
+## 4  New Jersey Devils  1
+## 5  New Jersey Devils  1
+## 6  New Jersey Devils  1
+## 7  New Jersey Devils  1
+## 8  New Jersey Devils  1
+## 9  New Jersey Devils  1
+## 10 New Jersey Devils  1
+## 11 New Jersey Devils  1
+## 12 New Jersey Devils  1
+## 13 New Jersey Devils  1
+## 14 New Jersey Devils  1
+## 15 New Jersey Devils  1
+## 16 New Jersey Devils  1
+## 17 New Jersey Devils  1
+## 18 New Jersey Devils  1
+## 19 New Jersey Devils  1
+## 20 New Jersey Devils  1
+## 21 New Jersey Devils  1
+## 22 New Jersey Devils  1
+## 23 New Jersey Devils  1
+## 24 New Jersey Devils  1
+## 25 New Jersey Devils  1
+## 26 New Jersey Devils  1
+##               link abbreviation
+## 1  /api/v1/teams/1          NJD
+## 2  /api/v1/teams/1          NJD
+## 3  /api/v1/teams/1          NJD
+## 4  /api/v1/teams/1          NJD
+## 5  /api/v1/teams/1          NJD
+## 6  /api/v1/teams/1          NJD
+## 7  /api/v1/teams/1          NJD
+## 8  /api/v1/teams/1          NJD
+## 9  /api/v1/teams/1          NJD
+## 10 /api/v1/teams/1          NJD
+## 11 /api/v1/teams/1          NJD
+## 12 /api/v1/teams/1          NJD
+## 13 /api/v1/teams/1          NJD
+## 14 /api/v1/teams/1          NJD
+## 15 /api/v1/teams/1          NJD
+## 16 /api/v1/teams/1          NJD
+## 17 /api/v1/teams/1          NJD
+## 18 /api/v1/teams/1          NJD
+## 19 /api/v1/teams/1          NJD
+## 20 /api/v1/teams/1          NJD
+## 21 /api/v1/teams/1          NJD
+## 22 /api/v1/teams/1          NJD
+## 23 /api/v1/teams/1          NJD
+## 24 /api/v1/teams/1          NJD
+## 25 /api/v1/teams/1          NJD
+## 26 /api/v1/teams/1          NJD
+##    teamName locationName
+## 1    Devils   New Jersey
+## 2    Devils   New Jersey
+## 3    Devils   New Jersey
+## 4    Devils   New Jersey
+## 5    Devils   New Jersey
+## 6    Devils   New Jersey
+## 7    Devils   New Jersey
+## 8    Devils   New Jersey
+## 9    Devils   New Jersey
+## 10   Devils   New Jersey
+## 11   Devils   New Jersey
+## 12   Devils   New Jersey
+## 13   Devils   New Jersey
+## 14   Devils   New Jersey
+## 15   Devils   New Jersey
+## 16   Devils   New Jersey
+## 17   Devils   New Jersey
+## 18   Devils   New Jersey
+## 19   Devils   New Jersey
+## 20   Devils   New Jersey
+## 21   Devils   New Jersey
+## 22   Devils   New Jersey
+## 23   Devils   New Jersey
+## 24   Devils   New Jersey
+## 25   Devils   New Jersey
+## 26   Devils   New Jersey
+##    firstYearOfPlay  shortName
+## 1             1982 New Jersey
+## 2             1982 New Jersey
+## 3             1982 New Jersey
+## 4             1982 New Jersey
+## 5             1982 New Jersey
+## 6             1982 New Jersey
+## 7             1982 New Jersey
+## 8             1982 New Jersey
+## 9             1982 New Jersey
+## 10            1982 New Jersey
+## 11            1982 New Jersey
+## 12            1982 New Jersey
+## 13            1982 New Jersey
+## 14            1982 New Jersey
+## 15            1982 New Jersey
+## 16            1982 New Jersey
+## 17            1982 New Jersey
+## 18            1982 New Jersey
+## 19            1982 New Jersey
+## 20            1982 New Jersey
+## 21            1982 New Jersey
+## 22            1982 New Jersey
+## 23            1982 New Jersey
+## 24            1982 New Jersey
+## 25            1982 New Jersey
+## 26            1982 New Jersey
+##                    officialSiteUrl
+## 1  http://www.newjerseydevils.com/
+## 2  http://www.newjerseydevils.com/
+## 3  http://www.newjerseydevils.com/
+## 4  http://www.newjerseydevils.com/
+## 5  http://www.newjerseydevils.com/
+## 6  http://www.newjerseydevils.com/
+## 7  http://www.newjerseydevils.com/
+## 8  http://www.newjerseydevils.com/
+## 9  http://www.newjerseydevils.com/
+## 10 http://www.newjerseydevils.com/
+## 11 http://www.newjerseydevils.com/
+## 12 http://www.newjerseydevils.com/
+## 13 http://www.newjerseydevils.com/
+## 14 http://www.newjerseydevils.com/
+## 15 http://www.newjerseydevils.com/
+## 16 http://www.newjerseydevils.com/
+## 17 http://www.newjerseydevils.com/
+## 18 http://www.newjerseydevils.com/
+## 19 http://www.newjerseydevils.com/
+## 20 http://www.newjerseydevils.com/
+## 21 http://www.newjerseydevils.com/
+## 22 http://www.newjerseydevils.com/
+## 23 http://www.newjerseydevils.com/
+## 24 http://www.newjerseydevils.com/
+## 25 http://www.newjerseydevils.com/
+## 26 http://www.newjerseydevils.com/
+##    franchiseId active
+## 1           23   TRUE
+## 2           23   TRUE
+## 3           23   TRUE
+## 4           23   TRUE
+## 5           23   TRUE
+## 6           23   TRUE
+## 7           23   TRUE
+## 8           23   TRUE
+## 9           23   TRUE
+## 10          23   TRUE
+## 11          23   TRUE
+## 12          23   TRUE
+## 13          23   TRUE
+## 14          23   TRUE
+## 15          23   TRUE
+## 16          23   TRUE
+## 17          23   TRUE
+## 18          23   TRUE
+## 19          23   TRUE
+## 20          23   TRUE
+## 21          23   TRUE
+## 22          23   TRUE
+## 23          23   TRUE
+## 24          23   TRUE
+## 25          23   TRUE
+## 26          23   TRUE
+##           venue.name
+## 1  Prudential Center
+## 2  Prudential Center
+## 3  Prudential Center
+## 4  Prudential Center
+## 5  Prudential Center
+## 6  Prudential Center
+## 7  Prudential Center
+## 8  Prudential Center
+## 9  Prudential Center
+## 10 Prudential Center
+## 11 Prudential Center
+## 12 Prudential Center
+## 13 Prudential Center
+## 14 Prudential Center
+## 15 Prudential Center
+## 16 Prudential Center
+## 17 Prudential Center
+## 18 Prudential Center
+## 19 Prudential Center
+## 20 Prudential Center
+## 21 Prudential Center
+## 22 Prudential Center
+## 23 Prudential Center
+## 24 Prudential Center
+## 25 Prudential Center
+## 26 Prudential Center
+##             venue.link venue.city
+## 1  /api/v1/venues/null     Newark
+## 2  /api/v1/venues/null     Newark
+## 3  /api/v1/venues/null     Newark
+## 4  /api/v1/venues/null     Newark
+## 5  /api/v1/venues/null     Newark
+## 6  /api/v1/venues/null     Newark
+## 7  /api/v1/venues/null     Newark
+## 8  /api/v1/venues/null     Newark
+## 9  /api/v1/venues/null     Newark
+## 10 /api/v1/venues/null     Newark
+## 11 /api/v1/venues/null     Newark
+## 12 /api/v1/venues/null     Newark
+## 13 /api/v1/venues/null     Newark
+## 14 /api/v1/venues/null     Newark
+## 15 /api/v1/venues/null     Newark
+## 16 /api/v1/venues/null     Newark
+## 17 /api/v1/venues/null     Newark
+## 18 /api/v1/venues/null     Newark
+## 19 /api/v1/venues/null     Newark
+## 20 /api/v1/venues/null     Newark
+## 21 /api/v1/venues/null     Newark
+## 22 /api/v1/venues/null     Newark
+## 23 /api/v1/venues/null     Newark
+## 24 /api/v1/venues/null     Newark
+## 25 /api/v1/venues/null     Newark
+## 26 /api/v1/venues/null     Newark
+##    venue.id venue.timeZone.id
+## 1        NA  America/New_York
+## 2        NA  America/New_York
+## 3        NA  America/New_York
+## 4        NA  America/New_York
+## 5        NA  America/New_York
+## 6        NA  America/New_York
+## 7        NA  America/New_York
+## 8        NA  America/New_York
+## 9        NA  America/New_York
+## 10       NA  America/New_York
+## 11       NA  America/New_York
+## 12       NA  America/New_York
+## 13       NA  America/New_York
+## 14       NA  America/New_York
+## 15       NA  America/New_York
+## 16       NA  America/New_York
+## 17       NA  America/New_York
+## 18       NA  America/New_York
+## 19       NA  America/New_York
+## 20       NA  America/New_York
+## 21       NA  America/New_York
+## 22       NA  America/New_York
+## 23       NA  America/New_York
+## 24       NA  America/New_York
+## 25       NA  America/New_York
+## 26       NA  America/New_York
+##    venue.timeZone.offset
+## 1                     -4
+## 2                     -4
+## 3                     -4
+## 4                     -4
+## 5                     -4
+## 6                     -4
+## 7                     -4
+## 8                     -4
+## 9                     -4
+## 10                    -4
+## 11                    -4
+## 12                    -4
+## 13                    -4
+## 14                    -4
+## 15                    -4
+## 16                    -4
+## 17                    -4
+## 18                    -4
+## 19                    -4
+## 20                    -4
+## 21                    -4
+## 22                    -4
+## 23                    -4
+## 24                    -4
+## 25                    -4
+## 26                    -4
+##    venue.timeZone.tz division.id
+## 1                EDT          18
+## 2                EDT          18
+## 3                EDT          18
+## 4                EDT          18
+## 5                EDT          18
+## 6                EDT          18
+## 7                EDT          18
+## 8                EDT          18
+## 9                EDT          18
+## 10               EDT          18
+## 11               EDT          18
+## 12               EDT          18
+## 13               EDT          18
+## 14               EDT          18
+## 15               EDT          18
+## 16               EDT          18
+## 17               EDT          18
+## 18               EDT          18
+## 19               EDT          18
+## 20               EDT          18
+## 21               EDT          18
+## 22               EDT          18
+## 23               EDT          18
+## 24               EDT          18
+## 25               EDT          18
+## 26               EDT          18
+##    division.name division.nameShort
+## 1   Metropolitan              Metro
+## 2   Metropolitan              Metro
+## 3   Metropolitan              Metro
+## 4   Metropolitan              Metro
+## 5   Metropolitan              Metro
+## 6   Metropolitan              Metro
+## 7   Metropolitan              Metro
+## 8   Metropolitan              Metro
+## 9   Metropolitan              Metro
+## 10  Metropolitan              Metro
+## 11  Metropolitan              Metro
+## 12  Metropolitan              Metro
+## 13  Metropolitan              Metro
+## 14  Metropolitan              Metro
+## 15  Metropolitan              Metro
+## 16  Metropolitan              Metro
+## 17  Metropolitan              Metro
+## 18  Metropolitan              Metro
+## 19  Metropolitan              Metro
+## 20  Metropolitan              Metro
+## 21  Metropolitan              Metro
+## 22  Metropolitan              Metro
+## 23  Metropolitan              Metro
+## 24  Metropolitan              Metro
+## 25  Metropolitan              Metro
+## 26  Metropolitan              Metro
+##           division.link
+## 1  /api/v1/divisions/18
+## 2  /api/v1/divisions/18
+## 3  /api/v1/divisions/18
+## 4  /api/v1/divisions/18
+## 5  /api/v1/divisions/18
+## 6  /api/v1/divisions/18
+## 7  /api/v1/divisions/18
+## 8  /api/v1/divisions/18
+## 9  /api/v1/divisions/18
+## 10 /api/v1/divisions/18
+## 11 /api/v1/divisions/18
+## 12 /api/v1/divisions/18
+## 13 /api/v1/divisions/18
+## 14 /api/v1/divisions/18
+## 15 /api/v1/divisions/18
+## 16 /api/v1/divisions/18
+## 17 /api/v1/divisions/18
+## 18 /api/v1/divisions/18
+## 19 /api/v1/divisions/18
+## 20 /api/v1/divisions/18
+## 21 /api/v1/divisions/18
+## 22 /api/v1/divisions/18
+## 23 /api/v1/divisions/18
+## 24 /api/v1/divisions/18
+## 25 /api/v1/divisions/18
+## 26 /api/v1/divisions/18
+##    division.abbreviation conference.id
+## 1                      M             6
+## 2                      M             6
+## 3                      M             6
+## 4                      M             6
+## 5                      M             6
+## 6                      M             6
+## 7                      M             6
+## 8                      M             6
+## 9                      M             6
+## 10                     M             6
+## 11                     M             6
+## 12                     M             6
+## 13                     M             6
+## 14                     M             6
+## 15                     M             6
+## 16                     M             6
+## 17                     M             6
+## 18                     M             6
+## 19                     M             6
+## 20                     M             6
+## 21                     M             6
+## 22                     M             6
+## 23                     M             6
+## 24                     M             6
+## 25                     M             6
+## 26                     M             6
+##    conference.name
+## 1          Eastern
+## 2          Eastern
+## 3          Eastern
+## 4          Eastern
+## 5          Eastern
+## 6          Eastern
+## 7          Eastern
+## 8          Eastern
+## 9          Eastern
+## 10         Eastern
+## 11         Eastern
+## 12         Eastern
+## 13         Eastern
+## 14         Eastern
+## 15         Eastern
+## 16         Eastern
+## 17         Eastern
+## 18         Eastern
+## 19         Eastern
+## 20         Eastern
+## 21         Eastern
+## 22         Eastern
+## 23         Eastern
+## 24         Eastern
+## 25         Eastern
+## 26         Eastern
+##          conference.link
+## 1  /api/v1/conferences/6
+## 2  /api/v1/conferences/6
+## 3  /api/v1/conferences/6
+## 4  /api/v1/conferences/6
+## 5  /api/v1/conferences/6
+## 6  /api/v1/conferences/6
+## 7  /api/v1/conferences/6
+## 8  /api/v1/conferences/6
+## 9  /api/v1/conferences/6
+## 10 /api/v1/conferences/6
+## 11 /api/v1/conferences/6
+## 12 /api/v1/conferences/6
+## 13 /api/v1/conferences/6
+## 14 /api/v1/conferences/6
+## 15 /api/v1/conferences/6
+## 16 /api/v1/conferences/6
+## 17 /api/v1/conferences/6
+## 18 /api/v1/conferences/6
+## 19 /api/v1/conferences/6
+## 20 /api/v1/conferences/6
+## 21 /api/v1/conferences/6
+## 22 /api/v1/conferences/6
+## 23 /api/v1/conferences/6
+## 24 /api/v1/conferences/6
+## 25 /api/v1/conferences/6
+## 26 /api/v1/conferences/6
+##    franchise.franchiseId
+## 1                     23
+## 2                     23
+## 3                     23
+## 4                     23
+## 5                     23
+## 6                     23
+## 7                     23
+## 8                     23
+## 9                     23
+## 10                    23
+## 11                    23
+## 12                    23
+## 13                    23
+## 14                    23
+## 15                    23
+## 16                    23
+## 17                    23
+## 18                    23
+## 19                    23
+## 20                    23
+## 21                    23
+## 22                    23
+## 23                    23
+## 24                    23
+## 25                    23
+## 26                    23
+##    franchise.teamName
+## 1              Devils
+## 2              Devils
+## 3              Devils
+## 4              Devils
+## 5              Devils
+## 6              Devils
+## 7              Devils
+## 8              Devils
+## 9              Devils
+## 10             Devils
+## 11             Devils
+## 12             Devils
+## 13             Devils
+## 14             Devils
+## 15             Devils
+## 16             Devils
+## 17             Devils
+## 18             Devils
+## 19             Devils
+## 20             Devils
+## 21             Devils
+## 22             Devils
+## 23             Devils
+## 24             Devils
+## 25             Devils
+## 26             Devils
+##           franchise.link
+## 1  /api/v1/franchises/23
+## 2  /api/v1/franchises/23
+## 3  /api/v1/franchises/23
+## 4  /api/v1/franchises/23
+## 5  /api/v1/franchises/23
+## 6  /api/v1/franchises/23
+## 7  /api/v1/franchises/23
+## 8  /api/v1/franchises/23
+## 9  /api/v1/franchises/23
+## 10 /api/v1/franchises/23
+## 11 /api/v1/franchises/23
+## 12 /api/v1/franchises/23
+## 13 /api/v1/franchises/23
+## 14 /api/v1/franchises/23
+## 15 /api/v1/franchises/23
+## 16 /api/v1/franchises/23
+## 17 /api/v1/franchises/23
+## 18 /api/v1/franchises/23
+## 19 /api/v1/franchises/23
+## 20 /api/v1/franchises/23
+## 21 /api/v1/franchises/23
+## 22 /api/v1/franchises/23
+## 23 /api/v1/franchises/23
+## 24 /api/v1/franchises/23
+## 25 /api/v1/franchises/23
+## 26 /api/v1/franchises/23
+##               roster.link
+## 1  /api/v1/teams/1/roster
+## 2  /api/v1/teams/1/roster
+## 3  /api/v1/teams/1/roster
+## 4  /api/v1/teams/1/roster
+## 5  /api/v1/teams/1/roster
+## 6  /api/v1/teams/1/roster
+## 7  /api/v1/teams/1/roster
+## 8  /api/v1/teams/1/roster
+## 9  /api/v1/teams/1/roster
+## 10 /api/v1/teams/1/roster
+## 11 /api/v1/teams/1/roster
+## 12 /api/v1/teams/1/roster
+## 13 /api/v1/teams/1/roster
+## 14 /api/v1/teams/1/roster
+## 15 /api/v1/teams/1/roster
+## 16 /api/v1/teams/1/roster
+## 17 /api/v1/teams/1/roster
+## 18 /api/v1/teams/1/roster
+## 19 /api/v1/teams/1/roster
+## 20 /api/v1/teams/1/roster
+## 21 /api/v1/teams/1/roster
+## 22 /api/v1/teams/1/roster
+## 23 /api/v1/teams/1/roster
+## 24 /api/v1/teams/1/roster
+## 25 /api/v1/teams/1/roster
+## 26 /api/v1/teams/1/roster
+##  [ reached &#39;max&#39; / getOption(&quot;max.print&quot;) -- omitted 1073 rows ]
+</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1"></a><span class="kw">getStatsTable</span>(<span class="dt">modifier =</span> <span class="st">&quot;teamId&quot;</span>, <span class="dt">teamIds =</span> <span class="st">&quot;1,2,3&quot;</span>)</span></code></pre></div>
+<pre><code>## # A tibble: 3 x 29
+##      id name  link  abbreviation
+##   &lt;int&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;       
+## 1     1 New ~ /api~ NJD         
+## 2     2 New ~ /api~ NYI         
+## 3     3 New ~ /api~ NYR         
+## # ... with 25 more variables:
+## #   teamName &lt;chr&gt;,
+## #   locationName &lt;chr&gt;,
+## #   firstYearOfPlay &lt;chr&gt;,
+## #   shortName &lt;chr&gt;,
+## #   officialSiteUrl &lt;chr&gt;,
+## #   franchiseId &lt;int&gt;, active &lt;lgl&gt;,
+## #   venue.name &lt;chr&gt;,
+## #   venue.link &lt;chr&gt;,
+## #   venue.city &lt;chr&gt;, venue.id &lt;int&gt;,
+## #   venue.timeZone.id &lt;chr&gt;,
+## #   venue.timeZone.offset &lt;int&gt;,
+## #   venue.timeZone.tz &lt;chr&gt;,
+## #   division.id &lt;int&gt;,
+## #   division.name &lt;chr&gt;,
+## #   division.nameShort &lt;chr&gt;,
+## #   division.link &lt;chr&gt;,
+## #   division.abbreviation &lt;chr&gt;,
+## #   conference.id &lt;int&gt;,
+## #   conference.name &lt;chr&gt;,
+## #   conference.link &lt;chr&gt;,
+## #   franchise.franchiseId &lt;int&gt;,
+## #   franchise.teamName &lt;chr&gt;,
+## #   franchise.link &lt;chr&gt;
+</code></pre>
 
 </body>
 </html>
