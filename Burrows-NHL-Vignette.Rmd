@@ -3,7 +3,7 @@ title: "Joshua Burrows Project 1"
 output: rmarkdown::github_document
 ---
 
-```{r include=FALSE}
+```{r Setup, include=FALSE}
 library(assertthat)
 library(knitr)
 library(tidyverse)
@@ -17,133 +17,145 @@ opts_chunk$set(echo = TRUE)
 
 Hi
 
-```{r}
+```{r Get Records Table}
 recBaseURL <- "https://records.nhl.com/site/api"
 
-# Return the requested table
+# Return the requested table from records API
 getTable <- function(table){
   
   if(!is.string(table)){
-    return(warning("Input must be a character string")) 
+    stop("Input must be a character string")
   }
   
   recFullURL <- paste0(recBaseURL, "/", table) 
-  info <- recFullURL %>% GET() %>% content("text") %>% fromJSON(flatten = "TRUE")
+  info <- recFullURL %>% GET() %>% content("text", encoding = "UTF-8") %>% fromJSON(flatten = "TRUE")
   info <- info[[1]] %>% as_tibble()
   
   return(info)
 }
-
-# filter info from requested table by team name or team Id
-filterTable <- function(table, nameName, teamIdName, name, idNum){
-  
-  if(!is.null(name)){
-    if(!is.null(idNum)){
-      return(warning("Search by either name or idNum, not both"))
-    } else if(name == "all"){ 
-        return(table)
-      } else{
-          team <- table %>% filter(table[[nameName]] == name)
-          if(length(team[[nameName]]) == 0){
-            return(warning("name should be a team name or all"))
-          } else{
-              return(team)
-            }
-        }
-  } else if(!is.null(idNum)){
-      if(idNum == "all"){
-        return(table)
-      } else{
-          team <- table %>% filter(table[[teamIdName]] == idNum)
-          if(length(team[[teamIdName]]) == 0){ 
-            return(warning("Not a valid team idNum"))
-          } else{
-              return(team)
-          } 
-      }
-    } 
-  
-  # if both arguments are null, return full table 
-  return(table) 
-  
-}
 ```
 
-```{r}
-# Get franchise info by name or teamId
+
+```{r Filter Records Table}
+# filter info from requested records table by team name or team Id
+filterTable <- function(table, nameName = NULL, idNumName = NULL, name = NULL, idNum = NULL){
+  
+  # If neither filter condition specified, return full table
+  if((is.null(name) & is.null(idNum))){
+    return(table)
+  }
+  
+  if((is.null(nameName) & is.null(idNumName))){
+    stop("in order to filter, either nameName or idNumName must be specified")
+  } 
+  
+  # User should search by one condition at a time
+  if((!is.null(name) & !is.null(idNum))){
+    stop("search by either name or idNum, not both")
+  }
+  
+  if((!is.null(name) & is.null(nameName))){
+    stop("if name is specified, nameName must be specified")
+  }
+  
+  if((!is.null(idNum) & is.null(idNumName))){
+    stop("is idNum is specified, idNumName must be specified")
+  }
+  
+  if(!is.null(name)){
+    if(name == "all"){ 
+        return(table)
+    } else{
+        team <- table %>% filter(table[[nameName]] == name)
+        if(length(team[[nameName]]) == 0){
+          stop("not a vaild team name")
+        } else{
+            return(team)
+          }
+      } 
+  }
+    
+  if(!is.null(idNum)){
+    if(idNum == "all"){
+        return(table)
+    } else{
+        team <- table %>% filter(table[[idNumName]] == idNum)
+        if(length(team[[idNumName]]) == 0){ 
+          stop("Not a valid team idNum")
+        } else{
+            return(team)
+          }
+      } 
+  } 
+
+}
+
+```
+
+```{r Franchise Records}
+# Get franchise info by name or idNum
 franchise <- function(name = NULL, idNum = NULL){
 
   franchises <- getTable("franchise") 
   
-  filterTable(franchises, nameName = "teamCommonName", teamIdName = "id", name, idNum) 
+  filterTable(franchises, nameName = "teamCommonName", idNumName = "id", name, idNum) 
   
 }
-
-franchise(name = "Canadiens")
+franchise()
 ```
 
-```{r}
+```{r Franchise Team Records}
 # Return franchise team totals
 teamTotals <- function(name = NULL, idNum = NULL){
   
   teamTotals <- getTable("franchise-team-totals") 
   
-  filterTable(teamTotals, nameName = "teamName", teamIdName = "franchiseId", name, idNum) 
+  filterTable(teamTotals, nameName = "teamName", idNumName = "franchiseId", name, idNum) 
   
 } 
-
-teamTotals(name = "Montréal Canadiens")
+teamTotals()
 ```
 
 
-```{r}
+```{r Season Records}
 # Return season records for a given franchise
 season <- function(name = NULL, idNum = NULL){
   
   seasonRecords <- getTable("franchise-season-records") 
   
-  filterTable(seasonRecords, nameName = "franchiseName", teamIdName = "franchiseId", name, idNum) 
+  filterTable(seasonRecords, nameName = "franchiseName", idNumName = "franchiseId", name, idNum) 
 } 
-
-season(name = "Montréal Canadiens")
-
-# Test 
-test <- GET("https://records.nhl.com/site/api/franchise-season-records?cayenneExp=franchiseId=1") %>% content("text") %>% fromJSON(flatten = TRUE) 
-test
 ```
 
 
-```{r}
+```{r Goalie Records}
 # Return franchise goalie records 
 goalie <- function(name = NULL, idNum = NULL){
   
   goalieRecords <- getTable("franchise-goalie-records")
   
-  filterTable(goalieRecords, nameName = "franchiseName", teamIdName = "franchiseId", name, idNum)
+  filterTable(goalieRecords, nameName = "franchiseName", idNumName = "franchiseId", name, idNum)
   
 } 
-
-goalie(name = "Montréal Canadiens")
 ```
 
 
-```{r}
+```{r Skater Records}
 skater <- function(name = NULL, idNum = NULL){
   
   skaterRecords <- getTable("franchise-skater-records") 
   
-  filterTable(skaterRecords, nameName = "franchiseName", teamIdName = "franchiseId", name, idNum) 
+  filterTable(skaterRecords, nameName = "franchiseName", idNumName = "franchiseId", name, idNum) 
   
 }
-
-skater(name = "Montréal Canadiens")
 ```
 
+# Stats API 
 
 ```{r getStatsTable}
 statsBaseURL <- "https://statsapi.web.nhl.com/api/v1/teams"
 
-getStatsTable <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
+getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   
   if(is.null(modifier)){
     base <- statsBaseURL %>% GET() %>% content("text") %>% fromJSON(flatten = TRUE)
@@ -152,31 +164,68 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
   }
     
   if(modifier == "team.roster"){
+    if((!is.null(seasonId) | !is.null(idNum))){
+      stop("search by seasonId and/or idNum not compatible with modifier team.roster")
+    }
+    
     mod = "?expand=team.roster"
   } 
   
   if(modifier == "person.names"){
+    if((!is.null(seasonId) | !is.null(idNum))){
+      stop("search by seasonId and/or idNum not compatible with modifier person.names")
+    }
+    
     mod = "?expand=person.names" 
   }
   
   if(modifier == "team.schedule.next"){
+    if((!is.null(seasonId) | !is.null(idNum))){
+      stop("search by seasonId and/or idNum not compatible with modifier team.schedule.next")
+    }
+    
     mod = "?expand=team.schedule.next"
   } 
   
   if(modifier == "team.schedule.previous"){
+    if((!is.null(seasonId) | !is.null(idNum))){
+      stop("search by seasonId and/or idNum not compatible with modifier team.schedule.previous")
+    }
+    
     mod = "?expand=team.schedule.previous"
   }
   
   if(modifier == "team.stats"){
+    if((!is.null(seasonId) | !is.null(idNum))){
+      stop("search by seasonId and/or idNum not compatible with modifier team.stats")
+    }
+    
     mod = "?expand=team.stats"
   }
   
   if(modifier == "team.roster&season"){
+    if(!is.null(idNum)){
+      stop("search by idNum not compatible with modifier team.roster&season")
+    }
+    
     mod = paste0("?expand=team.roster&season=", seasonId)
   }
   
   if(modifier == "teamId"){
-    mod = paste0("?teamId=", teamIds)
+    if(!is.null(seasonId)){
+      stop("search by seasonId not compatible with modifier team.roster&season")
+    }
+    
+    if(!is.null(idNum)){
+      idCheck <- strsplit(idNum, split = "")[[1]]
+      for(i in idCheck){
+        if((!(i %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ",")))){
+          stop("idNum must be of format 1,2,3")
+        }
+      }
+    }
+    
+    mod = paste0("?teamId=", idNum)
   }
   
   statsFullURL <- paste0(statsBaseURL, "/", mod)
@@ -186,25 +235,30 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
   
   return(full)
 }
-
-getStatsTable(modifier = "teamId", teamIds = "1,2,5")
+getStatsTable(modifier = "team.stats")[["teamStats"]][[1]]
 ```
 
+
+## Teams Endpoint
+
+The teams endpoint of the NHL stats API has eight modifiers. Typically, including a modifier returns more detailed information about a particular topic. 
+
+Most modified endpoints require "flattening". 
+
 ```{r Stats Endpoint}
-teamStats <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
-  
-  # get base table 
-  base <- getStatsTable()
+teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   
   # if no modifier is present
   if(is.null(modifier)){
+    base <- getStatsTable()
     return(base)
   }
 
-  # team.roster modifier
+  # MODIFIER 
+  # team.roster
   if(modifier == "team.roster"){
     
-    stats <- getStatsTable(modifier) 
+    stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     
     roster <- stats[["roster.roster"]] 
     
@@ -217,16 +271,19 @@ teamStats <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
     return(statsFlatten)
   } 
   
-  # person.names modifier, which appears to be the same as the unmodified endpoint 
+  # MODIFIER
+  # person.names
+  # appears to be the same as the unmodified endpoint 
   if(modifier == "person.names"){ 
-    stats <- getStatsTable(modifier) 
+    stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     return(stats) 
   } 
   
-  # team.schedule.next modifier 
+  # MODIFIER
+  # team.schedule.next 
   if(modifier == "team.schedule.next"){
     
-    stats <- getStatsTable(modifier)
+    stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum)
     
     # Grab column that needs to be flattened 
     dates <- stats[["nextGameSchedule.dates"]]
@@ -265,11 +322,12 @@ teamStats <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
     return(schedule) 
   } 
   
-  # team.schedule.previous modifier
+  # MODIFIER
+  # team.schedule.previous
   if(modifier == "team.schedule.previous"){
     
     # Have to type modifier here? 
-    stats <- getStatsTable(modifier) 
+    stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     
     # Grab col that needs to be flattened 
     dates <- stats[["previousGameSchedule.dates"]]
@@ -318,7 +376,7 @@ teamStats <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
   # MODIFIER
   # team.stats
   if(modifier == "team.stats"){ 
-    stats <- getStatsTable(modifier = "team.stats")
+    stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum)
     
     statsFull <- tibble()
     for(i in stats[["name"]]){
@@ -346,7 +404,7 @@ teamStats <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
   # MODIFIER
   # team.roster&season
   if(modifier == "team.roster&season"){
-    stats <- getStatsTable(modifier, seasonId) 
+    stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     
     roster <- stats[["roster.roster"]]
     
@@ -362,19 +420,278 @@ teamStats <- function(modifier = NULL, seasonId = NULL, teamIds = NULL){
   # MODIFIER
   # teamId
   if(modifier == "teamId"){
-    stats <- getStatsTable(modifier, teamIds = teamIds) 
+    stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     return(stats) 
   }
   
-} 
+  stop("modifier must be one of: team.roster, person.names, team.schedule.next, team.schedule.previous, team.stats, team.roster&season, teamId")
+  
+}  
 
 teamStats()
-teamStats(modifier = "team.schedule.previous")
+teamStats(modifier = "team.roster")
+
 teamStats(modifier = "team.stats")
 teamStats(modifier = "team.roster&season", seasonId = "20182019") 
-getStatsTable(modifier = "teamId", teamIds = "1,2,3")
+getStatsTable(modifier = "teamId", idNum = "1,2,3")
+```
+
+
+# Wrapper 
+
+```{r Wrapper}
+getNHL <- function(API, recTable = NULL, name = NULL, idNum = NULL, modifier = NULL, seasonId = NULL){
+  
+  if(!(API %in% c("records", "stats"))){
+    return(warning("API must be either records or stats"))
+  }
+  
+  if(API == "records"){
+    
+    if(recTable == "franchise"){
+      tab <- franchise(name = name, idNum = idNum)
+      return(tab)
+    }
+    
+    if(recTable == "franchise-team-totals"){
+      tab <- teamTotals(name = name, idNum = idNum)
+      return(tab)
+    }
+    
+    if(recTable == "franchise-season-records"){
+      tab <- season(name = name, idNum = idNum)
+      return(tab) 
+    }
+    
+    if(recTable == "franchise-goalie-records"){
+      tab <- goalie(name = name, idNum = idNum)
+      return(tab) 
+    }
+    
+    if(recTable == "franchise-skater-records"){
+      tab <- skater(name = name, idNum = idNum)
+      return(tab) 
+    }
+    
+    stop("recTable must be one of: franchise, franchise-team-totals, franchise-season-records, franchise-goalie-records, franchise-skater-records")
+  
+  }
+  
+  if(API == "stats"){
+   tab <- teamStats(modifier = modifier, seasonId = seasonId, idNum = idNum)
+   return(tab)
+  }
+  
+}
+
+getNHL(API = "records", recTable = "franchise")
+getNHL(API = "records", recTable = "franchise-team-totals")
+getNHL(API = "records", recTable = "franchise-season-records") 
+getNHL(API = "records", recTable = "franchise-goalie-records", idNum = 5)
+getNHL(API = "records", recTable = "franchise-skater-records", name = "Dallas Stars")
+
+getNHL(API = "stats")
+getNHL(API = "stats", modifier = "team.roster")
+getNHL(API = "stats", modifier = "person.names")
+getNHL(API = "stats", modifier = "team.schedule.next")
+getNHL(API = "stats", modifier = "team.schedule.previous")
+getNHL(API = "stats", modifier = "team.stats")
+getNHL(API = "stats", modifier = "team.roster&season", seasonId = "20192020")
+getNHL(API = "stats", modifier = "teamId")
 
 ```
+
+# Exploratory Data Anlaysis 
+
+What are the characteristics of a winning team?
+
+```{r}
+
+# Get win perentage 
+totals <- getNHL(API = "records", recTable = "franchise-team-totals")
+totals
+names <- unique(totals[["teamName"]])
+
+winLoss <- tibble()
+for(i in names){
+  teamTotal <- totals %>% filter(teamName == i) %>% select(c("wins", "losses", "gamesPlayed", "homeTies", "roadTies", "overtimeLosses", "penaltyMinutes", "goalsFor", "goalsAgainst"))
+
+  wins <- 0
+  losses <- 0
+  gamesPlayed <- 0
+  homeTies <- 0 
+  roadTies <- 0
+  overtimeLosses <- 0 
+  penaltyMinutes <- 0
+  goalsFor <- 0
+  goalsAgainst <- 0
+  
+  for(j in 1:nrow(teamTotal)){
+    wins <- sum(wins, teamTotal[["wins"]][[j]], na.rm = TRUE)
+    losses <- sum(losses, teamTotal[["losses"]][[j]], na.rm = TRUE)
+    gamesPlayed <- sum(gamesPlayed, teamTotal[["gamesPlayed"]][[j]], na.rm = TRUE)
+    homeTies <- sum(homeTies, teamTotal[["homeTies"]][[j]], na.rm = TRUE)
+    roadTies <- sum(roadTies, teamTotal[["roadTies"]][[j]], na.rm = TRUE) 
+    overtimeLosses <- sum(overtimeLosses, teamTotal[["overtimeLosses"]][[j]], na.rm = TRUE)
+    penaltyMinutes <- sum(penaltyMinutes, teamTotal[["penaltyMinutes"]], na.rm = TRUE)
+    goalsFor <- sum(goalsFor, teamTotal[["goalsFor"]], na.rm = TRUE)
+    goalsAgainst <- sum(goalsAgainst, teamTotal[["goalsAgainst"]], na.rm = TRUE)
+  }
+
+ teamWinLoss <- tibble(name = i, wins = wins, losses = losses, homeTies = homeTies, roadTies = roadTies, overtimeLosses = overtimeLosses, gamesPlayed = gamesPlayed, penaltyMinutes = penaltyMinutes, goalsFor = goalsFor, goalsAgainst = goalsAgainst)
+ winLoss <- rbind(winLoss, teamWinLoss)
+}
+
+winLoss
+winLoss <- winLoss %>% mutate(winPct = wins / gamesPlayed, penaltyAvg = penaltyMinutes / gamesPlayed) %>% select("name", "winPct", "penaltyAvg", "gamesPlayed", "goalsFor", "goalsAgainst")
+winLoss
+```
+
+
+```{r}
+# Win percentage and avg goals per skater 
+skaters <- getNHL(API = "records", recTable = "franchise-skater-records")
+
+avgGoals <- skaters %>% group_by(franchiseName) %>% summarize(avgGoals = mean(goals)) %>% rename("name" = "franchiseName")
+
+goalsWins <- left_join(avgGoals, winLoss, by = "name")
+goalsWins <- goalsWins %>% filter(gamesPlayed >= 1000)
+
+g <- ggplot(data = goalsWins, aes(x = winPct))
+g + geom_point(aes(y = avgGoals)) + geom_smooth(aes(y = avgGoals), method = lm)
+
+```
+
+```{r}
+
+g + geom_point(aes(y = penaltyAvg)) + geom_smooth(aes(y = penaltyAvg), method = lm)
+```
+
+
+Contingency table: division by number of winning teams, conference by number of winning teams
+```{r}
+getNHL(API = "stats", modifier = "team.stats") %>% filter(statName == c("stat.gamesPlayed", "stat.wins"))
+```
+
+```{r}
+g2 <- ggplot(data = skaters, aes(x = positionCode))
+g2 + geom_bar()
+g2 + geom_bar(aes(fill = activePlayer), position = "dodge")
+skaters
+```
+
+```{r}
+GPS <- skaters %>% filter(seasons > 3) %>% mutate(GPS = goals / seasons, PPS = points / seasons)
+
+g3 <- ggplot(data = GPS, aes(x = positionCode)) 
+
+g3 + geom_boxplot(aes(y = GPS))
+
+g3 + geom_boxplot(aes(y = PPS))
+
+
+
+```
+
+```{r}
+# Win percentage goalies who played at least 10 games 
+goalies <- getNHL(API = "records", recTable = "franchise-goalie-records")
+goalies <- goalies %>% filter(gamesPlayed > 10) %>% mutate(winPct = wins / gamesPlayed)
+
+ggplot(data = goalies) + geom_histogram(aes(x = winPct), bins = 20)
+```
+
+```{r}
+streakLength <- function(x){
+  if(is.na(x)){
+    return(NA)
+  }
+  
+  if(x <= 5){
+    return("0-5")
+  } else if((x > 5 & x <= 10)){
+      return("6-10")
+    } else if((x > 10 & x <= 15)){
+        return("11-15")
+      } else if(x > 15){
+          return("greater than 15")
+        } else{
+            stop("win streak error")
+          } 
+}
+
+streakLength <- Vectorize(streakLength)
+
+seasonRecs <- getNHL(API = "records", recTable = "franchise-season-records") %>% mutate(winStreakId = streakLength(winStreak))
+seasonRecs
+
+goalsCat <- function(x){
+  if(x <= .5){
+    return("50% or less")
+  } else{
+      return("Greater than 50%")
+    }
+}
+
+goalsCat <- Vectorize(goalsCat)
+
+teamRecs <- winLoss %>% rename("franchiseName" = "name")
+
+teamRecs <- teamRecs %>% mutate(goalRatio = goalsFor / ( goalsAgainst + goalsFor)) %>% mutate(goalsId = goalsCat(goalRatio))
+
+tab <- left_join(seasonRecs, teamRecs, by = "franchiseName") %>% select("franchiseName", "winStreakId", "goalsId")
+
+table(tab$winStreakId, tab$goalsId)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+goalsCategory <- function(x){
+  if(is.na(x)){
+    return(NA)
+  }
+  
+  if(x <= 100){
+    return("0-100")
+  } else if((x > 100 & x <= 200)){
+      return("101-200")
+    } else if((x > 200 & x <= 300)){
+        return("201-300")
+      } else if((x > 300 & x <= 400)){
+          return("301-400")
+        } else if((x > 400 & x <= 500)){
+            return("401-500")
+          } else if(x > 500){
+              return("greater than 500") 
+            } else{
+                stop("goals category error")
+              } 
+}
+
+goalsCategory <- Vectorize(goalsCategory)
+
+skaters <- skaters %>% mutate(goalsId = goalsCategory(goals))
+
+tab <- left_join(skaters, seasonRecs, by = "franchiseId") %>% select("franchiseId", "goals", "winStreakId", "goalsId")
+tab
+tab %>% group_by() %>% table()
+```
+
 
 
 
