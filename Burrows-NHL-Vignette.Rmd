@@ -157,12 +157,20 @@ statsBaseURL <- "https://statsapi.web.nhl.com/api/v1/teams"
 
 getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   
+  # no modifier 
   if(is.null(modifier)){
+    
+    if((!is.null(seasonId) | !is.null(idNum))){
+      stop("search by seasonId and/or idNum requires appropriate modifier")
+    }
+    
     base <- statsBaseURL %>% GET() %>% content("text") %>% fromJSON(flatten = TRUE)
-  base <- base[[2]] %>% as_tibble()
-  return(base)
+    base <- base[[2]] %>% as_tibble()
+    return(base)
   }
     
+  # MODIFIER 
+  # team.roster 
   if(modifier == "team.roster"){
     if((!is.null(seasonId) | !is.null(idNum))){
       stop("search by seasonId and/or idNum not compatible with modifier team.roster")
@@ -171,6 +179,8 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     mod = "?expand=team.roster"
   } 
   
+  # MODIFIER 
+  # person.names 
   if(modifier == "person.names"){
     if((!is.null(seasonId) | !is.null(idNum))){
       stop("search by seasonId and/or idNum not compatible with modifier person.names")
@@ -179,6 +189,8 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     mod = "?expand=person.names" 
   }
   
+  # MODIFIER 
+  # team.schedule.next 
   if(modifier == "team.schedule.next"){
     if((!is.null(seasonId) | !is.null(idNum))){
       stop("search by seasonId and/or idNum not compatible with modifier team.schedule.next")
@@ -187,6 +199,8 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     mod = "?expand=team.schedule.next"
   } 
   
+  # MODIFIER 
+  # team.schedule.previous 
   if(modifier == "team.schedule.previous"){
     if((!is.null(seasonId) | !is.null(idNum))){
       stop("search by seasonId and/or idNum not compatible with modifier team.schedule.previous")
@@ -195,6 +209,8 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     mod = "?expand=team.schedule.previous"
   }
   
+  # MODIFIER 
+  # team.stats
   if(modifier == "team.stats"){
     if((!is.null(seasonId) | !is.null(idNum))){
       stop("search by seasonId and/or idNum not compatible with modifier team.stats")
@@ -203,17 +219,29 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     mod = "?expand=team.stats"
   }
   
+  # MODIFIER 
+  # team.roster&season
   if(modifier == "team.roster&season"){
     if(!is.null(idNum)){
       stop("search by idNum not compatible with modifier team.roster&season")
     }
     
+    if(is.null(seasonId)){
+      stop("team.roster&season modifier requires search by seasonId") 
+    }
+    
+    if(nchar(seasonId) != 8){
+      stop("seasonId must be of format 20142015")
+    }
+    
     mod = paste0("?expand=team.roster&season=", seasonId)
   }
   
+  # MODIFIER 
+  # teamId
   if(modifier == "teamId"){
     if(!is.null(seasonId)){
-      stop("search by seasonId not compatible with modifier team.roster&season")
+      stop("search by seasonId not compatible with modifier teamId")
     }
     
     if(!is.null(idNum)){
@@ -228,6 +256,17 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     mod = paste0("?teamId=", idNum)
   }
   
+  # MODIFIER 
+  # statsSingleSeasonPlayoffs 
+  if(modifier == "statsSingleSeasonPlayoffs"){
+    if((!is.null(seasonId) | !is.null(idNum))){
+      stop("search by seasonId and/or idNum not compatible with modifier statsSingleSeasonPlayoffs")
+    }
+    
+    mod <- "?stats=statsSingleSeasonPlayoffs"
+  }
+  
+  # create URL and return 
   statsFullURL <- paste0(statsBaseURL, "/", mod)
   
   full <- statsFullURL %>% GET() %>% content("text") %>% fromJSON(flatten = TRUE)
@@ -235,7 +274,6 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   
   return(full)
 }
-getStatsTable(modifier = "team.stats")[["teamStats"]][[1]]
 ```
 
 
@@ -244,6 +282,8 @@ getStatsTable(modifier = "team.stats")[["teamStats"]][[1]]
 The teams endpoint of the NHL stats API has eight modifiers. Typically, including a modifier returns more detailed information about a particular topic. 
 
 Most modified endpoints require "flattening". 
+
+This is a long one, so check out the comments to keep your bearings. 
 
 ```{r Stats Endpoint}
 teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
@@ -260,14 +300,18 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     
     stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     
+    # get col to be flattened 
     roster <- stats[["roster.roster"]] 
     
+    # append team names to keep track of who plays for who
     for(i in 1:length(roster)){
       roster[[i]]$name <- stats[["name"]][[i]]
     }
     
+    # flatten roster info
     roster <- do.call(rbind, roster)
     statsFlatten <- left_join(roster, stats, by = "name") %>% select(-c("roster.roster"))
+    
     return(statsFlatten)
   } 
   
@@ -275,6 +319,7 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   # person.names
   # appears to be the same as the unmodified endpoint 
   if(modifier == "person.names"){ 
+    
     stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     return(stats) 
   } 
@@ -285,20 +330,20 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     
     stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum)
     
-    # Grab column that needs to be flattened 
+    # get col to be flattened 
     dates <- stats[["nextGameSchedule.dates"]]
     
-    # Create names column to track data by team
-    # Create list of teams that have a next game scheduled 
+    # create names column to track data by team
+    # create list of teams that have a next game scheduled 
     datesNonNull <- list()
     for(i in 1:length(dates)){
-      dates[[i]]$name <- stats[["name"]][[i]]
-      if(length(dates[[i]]) > 1){
+      if(!is.null(dates[[i]])){
+        dates[[i]]$name <- stats[["name"]][[i]]
         datesNonNull <- cbind(datesNonNull, dates[i])
       }
     }
     
-    # Flatten datesNonNull
+    # flatten datesNonNull
     for(i in 1:length(datesNonNull)){
       datesNonNull[[i]] <- cbind(datesNonNull[[i]], datesNonNull[[i]][["games"]]) %>% select(-c("games")) 
       
@@ -306,7 +351,7 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
         datesNonNull[[i]][["events"]][[1]][1][[1]]
       
       datesNonNull[[i]][["matches"]] <- 
-        datesNonNull[[4]][["matches"]][[1]][1][[1]]
+        datesNonNull[[i]][["matches"]][[1]][1][[1]]
     } 
     
     # Put dates info in one tibble 
@@ -315,9 +360,8 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
       datesVert <- rbind(datesVert, datesNonNull[[i]]) 
     } 
     
-    # Join flattened data with full data set 
-    schedule <- left_join(stats, datesVert, by = "name") %>% select(-c("nextGameSchedule.dates"))
-    # need to rename any cols? 
+    # join flattened data with full data set 
+    schedule <- left_join(stats, datesVert, by = "name", suffix = c(".main", ".nextGame")) %>% select(-c("nextGameSchedule.dates"))
     
     return(schedule) 
   } 
@@ -326,23 +370,22 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   # team.schedule.previous
   if(modifier == "team.schedule.previous"){
     
-    # Have to type modifier here? 
     stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     
-    # Grab col that needs to be flattened 
+    # grab col to flatten
     dates <- stats[["previousGameSchedule.dates"]]
     
-    # Create names column to track data by team
-    # Create list of teams that have a next game scheduled 
+    # create names column to track data by team
+    # create list of teams that have a next game scheduled 
     datesNonNull <- list()
     for(i in 1:length(dates)){
-      dates[[i]]$name <- stats[["name"]][[i]]
-      if(length(dates[[i]]) > 1){
+      if(!is.null(dates[[i]])){
+        dates[[i]]$name <- stats[["name"]][[i]]
         datesNonNull <- cbind(datesNonNull, dates[i])
       }
     }
     
-    # Flatten datesNonNull
+    # flatten datesNonNull
     for(i in 1:length(datesNonNull)){
       datesNonNull[[i]] <- cbind(datesNonNull[[i]], datesNonNull[[i]][["games"]]) %>% select(-c("games")) 
       
@@ -350,25 +393,24 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
         datesNonNull[[i]][["events"]][[1]][1][[1]]
       
       datesNonNull[[i]][["matches"]] <- 
-        datesNonNull[[4]][["matches"]][[1]][1][[1]]
+        datesNonNull[[i]][["matches"]][[1]][1][[1]]
     } 
     
-    # Create venue.id col where it doesn't exist 
+    # create venue.id col where it doesn't exist 
     for(i in 1:length(datesNonNull)){
       if(is.null(datesNonNull[[i]][["venue.id"]])){
         datesNonNull[[i]][["venue.id"]] <- NA
       }
     }
     
-    # Put dates info in one tibble 
+    # put dates info in one tibble 
     datesVert <- tibble() 
     for(i in 1:length(datesNonNull)){
       datesVert <- rbind(datesVert, datesNonNull[[i]]) 
     } 
   
-    # Join flattened data with full data set 
-    schedule <- left_join(stats, datesVert, by = "name") %>% select(-c("previousGameSchedule.dates"))
-    # need to rename any cols? 
+    # join flattened data with full data set 
+    schedule <- left_join(stats, datesVert, by = "name", suffix = c(".main", ".previousGame")) %>% select(-c("previousGameSchedule.dates"))
     
     return(schedule) 
   } 
@@ -376,64 +418,94 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   # MODIFIER
   # team.stats
   if(modifier == "team.stats"){ 
+    
     stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum)
     
-    statsFull <- tibble()
-    for(i in stats[["name"]]){
-      teamStats <- stats %>% filter(name == i)
+    # create empty list to contain final results
+    final <- list()
     
-      teamStatsSub <- teamStats[["teamStats"]]
+    # include data from the base endpoint 
+    final$teamOverview <- stats %>% select(-c("teamStats"))
     
-      wideRanks <- teamStatsSub[[1]][["splits"]][[1]] 
+    # get col to flatten
+    teamStats <- stats[["teamStats"]]
     
-      longRanks <- tibble(statName = colnames(wideRanks[, 1:31]), statValue = unlist(wideRanks[1, 1:31]), statRank = unlist(wideRanks[2, 1:31]))
-  
-      ranks <- cbind(longRanks, wideRanks[1, 32:34], row.names = NULL)
+    # empty tibbles to contain flattened data 
+    statsOverview <- tibble()
+    statsValues <- tibble()
+    statsRanks <- tibble()
+    
+    # flatten 
+    for(i in 1:length(teamStats)){
+      teamStats[[i]]$name <- stats[["name"]][[i]]
       
-      ranks <- cbind(ranks, teamStatsSub[[1]], row.names = NULL) %>% select(-c("splits"))
-    
-      ranks <- ranks %>% rename("name" = "team.name") 
-    
-      teamStats <- left_join(ranks, teamStats, by = "name") %>% select(-c("teamStats"))
+      statsOverview <- rbind(statsOverview, teamStats[[i]])
       
-      statsFull <- rbind(statsFull, teamStats)
-    } 
-    return(statsFull) 
+      statsValues <- rbind(statsValues, teamStats[[i]][["splits"]][[1]][1, ]) 
+      
+      statsRanks <- rbind(statsRanks, teamStats[[i]][["splits"]][[1]][2, ])
+    }
+    
+    statsOverview <- statsOverview %>% select(-c("splits"))
+    
+    # values table should be numeric 
+    for(i in 1:(ncol(statsValues) - 2)){
+      statsValues[[i]] <- as.double(statsValues[[i]])
+    }
+    
+    # fill in final list 
+    final$statsOverview <- statsOverview
+    final$statsValues <- statsValues
+    final$statsRanks <- statsRanks
+    
+    return(final)
   } 
   
   # MODIFIER
   # team.roster&season
   if(modifier == "team.roster&season"){
+    
     stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
     
+    # get col to flatten 
     roster <- stats[["roster.roster"]]
     
+    # add team names to keep track of who plays for who 
     for(i in 1:length(roster)){
       roster[[i]]$name <- stats[["name"]][[i]]
     }
     
+    # flatten 
     roster <- do.call(rbind, roster)
+    
+    # combine and return 
     statsFlatten <- left_join(roster, stats, by = "name") %>% select(-c("roster.roster"))
+    
     return(statsFlatten)
   }
   
   # MODIFIER
   # teamId
   if(modifier == "teamId"){
+    
     stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum) 
+    
     return(stats) 
   }
   
-  stop("modifier must be one of: team.roster, person.names, team.schedule.next, team.schedule.previous, team.stats, team.roster&season, teamId")
+  # MODIFIER
+  # statsSingleSeasonPlayoffs
+  # appears to be the same as the unmodified endpoint
+  if(modifier == "statsSingleSeasonPlayoffs"){
+    
+    stats <- getStatsTable(modifier = modifier, seasonId = seasonId, idNum = idNum)
+    
+    return(stats)
+  }
   
-}  
+  stop("modifier must be one of: team.roster, person.names, team.schedule.next, team.schedule.previous, team.stats, team.roster&season, teamId, statsSingleSeasonPlayoffs")
+}
 
-teamStats()
-teamStats(modifier = "team.roster")
-
-teamStats(modifier = "team.stats")
-teamStats(modifier = "team.roster&season", seasonId = "20182019") 
-getStatsTable(modifier = "teamId", idNum = "1,2,3")
 ```
 
 
@@ -505,192 +577,144 @@ getNHL(API = "stats", modifier = "teamId")
 
 What are the characteristics of a winning team?
 
-```{r}
-
-# Get win perentage 
+```{r Wins and Penalties}
 totals <- getNHL(API = "records", recTable = "franchise-team-totals")
-totals
-names <- unique(totals[["teamName"]])
+totalsRegular <- totals %>% filter(gameTypeId == 2)
+totalsPost <- totals %>% filter(gameTypeId == 3)
 
-winLoss <- tibble()
-for(i in names){
-  teamTotal <- totals %>% filter(teamName == i) %>% select(c("wins", "losses", "gamesPlayed", "homeTies", "roadTies", "overtimeLosses", "penaltyMinutes", "goalsFor", "goalsAgainst"))
+totalsRegular <- totalsRegular %>% filter(gamesPlayed >= 500) %>% mutate(winPct = wins / gamesPlayed, penaltyAvg = penaltyMinutes / gamesPlayed)
+totalsRegular
 
-  wins <- 0
-  losses <- 0
-  gamesPlayed <- 0
-  homeTies <- 0 
-  roadTies <- 0
-  overtimeLosses <- 0 
-  penaltyMinutes <- 0
-  goalsFor <- 0
-  goalsAgainst <- 0
-  
-  for(j in 1:nrow(teamTotal)){
-    wins <- sum(wins, teamTotal[["wins"]][[j]], na.rm = TRUE)
-    losses <- sum(losses, teamTotal[["losses"]][[j]], na.rm = TRUE)
-    gamesPlayed <- sum(gamesPlayed, teamTotal[["gamesPlayed"]][[j]], na.rm = TRUE)
-    homeTies <- sum(homeTies, teamTotal[["homeTies"]][[j]], na.rm = TRUE)
-    roadTies <- sum(roadTies, teamTotal[["roadTies"]][[j]], na.rm = TRUE) 
-    overtimeLosses <- sum(overtimeLosses, teamTotal[["overtimeLosses"]][[j]], na.rm = TRUE)
-    penaltyMinutes <- sum(penaltyMinutes, teamTotal[["penaltyMinutes"]], na.rm = TRUE)
-    goalsFor <- sum(goalsFor, teamTotal[["goalsFor"]], na.rm = TRUE)
-    goalsAgainst <- sum(goalsAgainst, teamTotal[["goalsAgainst"]], na.rm = TRUE)
-  }
+totalsPost <- totalsPost %>% filter(gamesPlayed >= 50) %>% mutate(winPct = wins / gamesPlayed, penaltyAvg = penaltyMinutes / gamesPlayed)
+totalsPost
 
- teamWinLoss <- tibble(name = i, wins = wins, losses = losses, homeTies = homeTies, roadTies = roadTies, overtimeLosses = overtimeLosses, gamesPlayed = gamesPlayed, penaltyMinutes = penaltyMinutes, goalsFor = goalsFor, goalsAgainst = goalsAgainst)
- winLoss <- rbind(winLoss, teamWinLoss)
-}
+corRegular <- cor(totalsRegular$winPct, totalsRegular$penaltyAvg)
 
-winLoss
-winLoss <- winLoss %>% mutate(winPct = wins / gamesPlayed, penaltyAvg = penaltyMinutes / gamesPlayed) %>% select("name", "winPct", "penaltyAvg", "gamesPlayed", "goalsFor", "goalsAgainst")
-winLoss
-```
+corPost <- cor(totalsPost$winPct, totalsPost$penaltyAvg)
 
+ggplot(totalsRegular, aes(x = penaltyAvg, y = winPct)) + geom_point() + geom_smooth(method = lm, col = "red") + geom_text(x = 20, y = .5, label = paste0("Correlation = ", round(corRegular, 2))) + labs(title = "Wins and Penalty Minutes, Regular Season", x = "Average Penalty Minutes", y = "Win Percentage", caption = "Teams with at least 500 games")
 
-```{r}
-# Win percentage and avg goals per skater 
-skaters <- getNHL(API = "records", recTable = "franchise-skater-records")
-
-avgGoals <- skaters %>% group_by(franchiseName) %>% summarize(avgGoals = mean(goals)) %>% rename("name" = "franchiseName")
-
-goalsWins <- left_join(avgGoals, winLoss, by = "name")
-goalsWins <- goalsWins %>% filter(gamesPlayed >= 1000)
-
-g <- ggplot(data = goalsWins, aes(x = winPct))
-g + geom_point(aes(y = avgGoals)) + geom_smooth(aes(y = avgGoals), method = lm)
+ggplot(totalsPost, aes(x = penaltyAvg, y = winPct)) + geom_point() + geom_smooth(method = lm) + geom_text(x = 20, y = .55, label = paste0("Correlation = ", round(corPost, 2))) + labs(title = "Wins and Penalty Minutes, Post Season", x = "Average Penalty Minutes", y = "Win Percentage", caption = "Teams with at least 50 games")
 
 ```
 
-```{r}
-
-g + geom_point(aes(y = penaltyAvg)) + geom_smooth(aes(y = penaltyAvg), method = lm)
-```
 
 
-Contingency table: division by number of winning teams, conference by number of winning teams
-```{r}
-getNHL(API = "stats", modifier = "team.stats") %>% filter(statName == c("stat.gamesPlayed", "stat.wins"))
-```
+```{r Wins and Goals}
+totalsRegular[["teamName"]] %>% sort()
 
-```{r}
-g2 <- ggplot(data = skaters, aes(x = positionCode))
-g2 + geom_bar()
-g2 + geom_bar(aes(fill = activePlayer), position = "dodge")
+
+skaters <- getNHL(API = "records", recTable = "franchise-skater-records") 
 skaters
+
+skatersSmall <- skaters %>% filter(franchiseName %in% totalsRegular[["teamName"]], positionCode != "D", goals > 200) %>% rename("teamName" = "franchiseName") %>% select(c("teamName", "goals", "positionCode"))
+
+skatersSmall
+
+
+
+skatersTeamTotals <- inner_join(skatersSmall, totalsPost, by = "teamName")
+skatersTeamTotals
+
+ggplot(skatersTeamTotals, aes(x = goals, y = winPct, color = positionCode)) + geom_point()
 ```
 
-```{r}
-GPS <- skaters %>% filter(seasons > 3) %>% mutate(GPS = goals / seasons, PPS = points / seasons)
 
-g3 <- ggplot(data = GPS, aes(x = positionCode)) 
+```{r Diffs}
+teamInfo <- getNHL(API = "stats", modifier = "team.stats")
+values <- teamInfo[["statsValues"]]
+values
 
-g3 + geom_boxplot(aes(y = GPS))
+teams <- getNHL(API = "stats")
+teams
 
-g3 + geom_boxplot(aes(y = PPS))
+teamValues <- inner_join(teams, values, by = c("name" = "team.name"))
+teamValues
 
+teamValues <- teamValues %>% mutate(WLDiff = stat.wins - stat.losses, shotDiff = stat.shotsPerGame - stat.shotsAllowed)
 
+positive <- function(x){
+  if(x > 0){
+    return("Winning Team")
+  } else if(x == 0){
+    return("50/50 Team")
+    } else{
+        return("Losing Team")
+      }
+}
 
+positive <- Vectorize(positive)
+
+teamValues <- teamValues %>% mutate(WLDiffIndicator = positive(WLDiff))
+
+teamValues
+
+table(teamValues$division.name, teamValues$WLDiffIndicator)
+table(teamValues$conference.name, teamValues$WLDiffIndicator)
+
+g <- ggplot(teamValues, aes(x = WLDiffIndicator))
+
+g + geom_bar(aes(fill = division.name), position = "dodge") + labs(title = "Winning Teams by Division", x = "Record", y = "Count") + scale_fill_discrete(name = "Division")
+
+g + geom_bar(aes(fill = conference.name), position = "dodge") + labs(title = "Winning Teams by Conference", x = "Record", y = "Count") + scale_fill_discrete(name = "Conference")
+
+g2 <- ggplot(teamValues, aes(x = WLDiff, y = ..density..))
+g2 + geom_histogram(bins = 10, fill = "lightblue") + geom_density(lwd = 2, color = "darkblue") + labs(title = "Win/Loss Differential", x = "Wins Minus Losses", y = "Density")
+
+teamValues
+
+ggplot(teamValues, aes(x = WLDiff, y = shotDiff, color = conference.name)) + geom_point() + labs(title = "Win/Loss Differential by Shots Taken/Allowed Differential", x = "Wins Minus Losses", y = "Shots Taken Minus Shots Allowed", color = "Conference")
 ```
 
-```{r}
-# Win percentage goalies who played at least 10 games 
-goalies <- getNHL(API = "records", recTable = "franchise-goalie-records")
-goalies <- goalies %>% filter(gamesPlayed > 10) %>% mutate(winPct = wins / gamesPlayed)
+```{r Tables}
+teams
+totalsRegular
+totalsRegular <- totalsRegular %>% mutate(avgGoalsAgainst = goalsAgainst / gamesPlayed, avgGoalsFor = goalsFor / gamesPlayed)
+totalsRegular
 
-ggplot(data = goalies) + geom_histogram(aes(x = winPct), bins = 20)
-```
+totalsRegularActive <- left_join(teams, totalsRegular, by = c("name" = "teamName"))
+totalsRegularActive
 
-```{r}
-streakLength <- function(x){
-  if(is.na(x)){
-    return(NA)
-  }
+totalsRegularActive %>% group_by(division.name) %>% summarize(divisionAvgGoalsAgainst = round(mean(avgGoalsAgainst), 3), divisionAvgGoalsFor = round(mean(avgGoalsFor), 3))
+
+g3 <- ggplot(totalsRegularActive, aes(x = division.name))
+
+g3 + geom_boxplot(aes(y = avgGoalsAgainst)) + labs(title = "Average Goals Against by Division", x = "Division", y = "Average Goals Against")
+
+g3 + geom_boxplot(aes(y = avgGoalsFor)) + labs(title = "Average Goals For by Division", x = "Division", y = "Average Goals For")
+
+
+divSum <- function(div){
   
-  if(x <= 5){
-    return("0-5")
-  } else if((x > 5 & x <= 10)){
-      return("6-10")
-    } else if((x > 10 & x <= 15)){
-        return("11-15")
-      } else if(x > 15){
-          return("greater than 15")
-        } else{
-            stop("win streak error")
-          } 
-}
-
-streakLength <- Vectorize(streakLength)
-
-seasonRecs <- getNHL(API = "records", recTable = "franchise-season-records") %>% mutate(winStreakId = streakLength(winStreak))
-seasonRecs
-
-goalsCat <- function(x){
-  if(x <= .5){
-    return("50% or less")
-  } else{
-      return("Greater than 50%")
-    }
-}
-
-goalsCat <- Vectorize(goalsCat)
-
-teamRecs <- winLoss %>% rename("franchiseName" = "name")
-
-teamRecs <- teamRecs %>% mutate(goalRatio = goalsFor / ( goalsAgainst + goalsFor)) %>% mutate(goalsId = goalsCat(goalRatio))
-
-tab <- left_join(seasonRecs, teamRecs, by = "franchiseName") %>% select("franchiseName", "winStreakId", "goalsId")
-
-table(tab$winStreakId, tab$goalsId)
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-goalsCategory <- function(x){
-  if(is.na(x)){
-    return(NA)
-  }
+  # Make sure input is correct type
+  if(!is.string(div)){
+    stop("Input must be a character string!") 
+  } 
   
-  if(x <= 100){
-    return("0-100")
-  } else if((x > 100 & x <= 200)){
-      return("101-200")
-    } else if((x > 200 & x <= 300)){
-        return("201-300")
-      } else if((x > 300 & x <= 400)){
-          return("301-400")
-        } else if((x > 400 & x <= 500)){
-            return("401-500")
-          } else if(x > 500){
-              return("greater than 500") 
-            } else{
-                stop("goals category error")
-              } 
+  # Get the numbers for the division in question
+  splitz <- totalsRegularActive %>% filter(division.name == div) %>% select(c("pointPctg", "avgGoalsAgainst", "avgGoalsFor"))
+  
+  # Get the summary statistics 
+  statz <- splitz %>% apply(MARGIN = 2, FUN = summary) %>% round(digits = 3)
+  
+  # Format pretty for printing 
+  cap <- paste0(div, " Division")
+  statz <- statz %>% kable(caption = cap)
+  
+  return(statz)
 }
 
-goalsCategory <- Vectorize(goalsCategory)
+divSum("Atlantic")
+divSum("Central")
+divSum("Metropolitan")
+divSum("Pacific")
 
-skaters <- skaters %>% mutate(goalsId = goalsCategory(goals))
 
-tab <- left_join(skaters, seasonRecs, by = "franchiseId") %>% select("franchiseId", "goals", "winStreakId", "goalsId")
-tab
-tab %>% group_by() %>% table()
 ```
+
+
+
+
 
 
 
