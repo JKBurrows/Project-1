@@ -350,7 +350,12 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     
     # flatten roster info
     roster <- do.call(rbind, roster)
-    statsFlatten <- left_join(roster, stats, by = "name", suffix = c("roster", "base")) %>% select(-c("roster.roster"))
+    statsFlatten <- 
+      left_join(roster, 
+                stats, 
+                by = "name", 
+                suffix = c("roster", "base")) %>% 
+      select(-c("roster.roster"))
     
     return(statsFlatten)
   } 
@@ -397,7 +402,9 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     } 
     
     # join flattened data with full data set 
-    schedule <- left_join(stats, datesVert, by = "name", suffix = c(".main", ".nextGame")) %>% select(-c("nextGameSchedule.dates"))
+    schedule <- 
+      left_join(stats, datesVert, by = "name", suffix = c(".main", ".nextGame")) %>% 
+      select(-c("nextGameSchedule.dates"))
     
     return(schedule) 
   } 
@@ -444,7 +451,12 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     } 
   
     # join flattened data with full data set 
-    schedule <- left_join(stats, datesVert, by = "name", suffix = c(".main", ".previousGame")) %>% select(-c("previousGameSchedule.dates"))
+    schedule <- 
+      left_join(stats, 
+                datesVert, 
+                by = "name", 
+                suffix = c(".main", ".previousGame")) %>% 
+      select(-c("previousGameSchedule.dates"))
     
     return(schedule) 
   } 
@@ -508,7 +520,12 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     roster <- do.call(rbind, roster)
     
     # combine and return 
-    statsFlatten <- left_join(roster, stats, by = "name", suffix = c("roster", "base")) %>% select(-c("roster.roster"))
+    statsFlatten <- 
+      left_join(roster, 
+                stats, 
+                by = "name", 
+                suffix = c("roster", "base")) %>% 
+      select(-c("roster.roster"))
     
     return(statsFlatten)
   }
