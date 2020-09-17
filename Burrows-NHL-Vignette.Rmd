@@ -657,7 +657,7 @@ It is worth noting, though, that many teams with high win percentages still have
 
 Teams that have played less than 500 regular season games were not considered. 
 
-```{r Wins and Penalties}
+```{r Wins and Penalties Regular}
 totals <- getNHL(API = "records", recTable = "franchise-team-totals")
 totalsRegular <- totals %>% filter(gameTypeId == 2)
 
@@ -686,7 +686,7 @@ During the post season, the negative correlation between win percentage and pena
 
 Teams with less than 50 post season games were not considered. 
 
-```{r}
+```{r Wins and Penalties Post}
 totalsPost <- totals %>% filter(gameTypeId == 3)
 
 totalsPost <- 
@@ -713,11 +713,11 @@ g2 +
 
 ### Join and Calculate 
 
-Below, a new table is created by joining data from the team.stats modifier with data from the unmodified stats endpoint. Then three new variables are calculated: 
+Below, a new table is created by joining data from the *team.stats* modifier with data from the unmodified stats endpoint. Then three new variables are calculated: 
 
 * Win/Loss Differential: Wins - Losses  
 * Win/Loss Diff Indicator: Whether a team has a winning record  
-* Shots Differential: Shots taken - shots allowed  
+* Shots Differential: Shots taken - Shots allowed  
 
 ```{r Diffs1}
 teamInfo <- getNHL(API = "stats", modifier = "team.stats")
@@ -751,18 +751,18 @@ teamValues %>% select(c("name", "WLDiff", "shotDiff", "WLDiffIndicator")) %>% he
 
 ### Win/Loss Differential by Division and Conference 
 
-Every team in the *Central* division is a winning team. In contrast, the *Atlantic* division has the worst winning team to losing team ratio. 
+Every team in the **Central** division is a winning team. In contrast, the **Atlantic** division has the worst winning team to losing team ratio. 
 
-The *Western* conference has a better winning team to losing team ratio than the *Eastern* conference. 
+The **Western** conference has a better winning team to losing team ratio than the **Eastern** conference. 
 
 Overall, the NHL has more winning teams than losing teams.
 
 This data is visualized in contingency tables and bar charts.
 
 ```{r Diffs2}
-table(teamValues$division.name, teamValues$WLDiffIndicator) %>% kable()
+table(teamValues$division.name, teamValues$WLDiffIndicator) %>% kable(caption = "Divisions")
 
-table(teamValues$conference.name, teamValues$WLDiffIndicator) %>% kable()
+table(teamValues$conference.name, teamValues$WLDiffIndicator) %>% kable(caption = "Conferences")
 
 g3 <- ggplot(teamValues, aes(x = WLDiffIndicator))
 
@@ -798,7 +798,7 @@ g4 +
 
 ### Shots Differential Vs Win/Loss Differential 
 
-Unsurprisingly, there is a positive correlation between win/loss differential and shots differential. 
+Unsurprisingly, there is a positive correlation between win/loss differential and shots differential. The slope of the trend line is steeper in the **Eastern** conference than the **Western** conference. This slope is not changed much by removing an outlier. 
 
 ```{r Diffs4}
 g5 <- ggplot(teamValues, aes(x = WLDiff, y = shotDiff, color = conference.name)) 
@@ -806,10 +806,26 @@ g5 <- ggplot(teamValues, aes(x = WLDiff, y = shotDiff, color = conference.name))
 g5 + 
   geom_point() + 
   geom_smooth(method = lm) + 
-  labs(title = "Win/Loss Differential by Shots Taken/Allowed Differential", 
+  labs(title = "Shots Taken/Allowed Differential vs Win/Loss Differential", 
        x = "Wins Minus Losses", 
        y = "Shots Taken Minus Shots Allowed", 
-       color = "Conference")
+       color = "Conference", 
+       caption = "With Outlier") +
+  coord_cartesian(xlim = c(-31, 31), ylim = c(-8, 7))
+
+teamValuesNoOut <- teamValues %>% filter(WLDiff > -20)
+
+g6 <- ggplot(teamValuesNoOut, aes(x = WLDiff, y = shotDiff, color = conference.name)) 
+
+g6 + 
+  geom_point() + 
+  geom_smooth(method = lm) + 
+  labs(title = "Shots Taken/Allowed Differential vs Win/Loss Differential ", 
+       x = "Wins Minus Losses", 
+       y = "Shots Taken Minus Shots Allowed", 
+       color = "Conference", 
+       caption = "Without Outlier") +
+  coord_cartesian(xlim = c(-31, 31), ylim = c(-8, 7))
 ```
 
 ## Goals Per Game 
@@ -840,7 +856,7 @@ totalsRegularActive %>% select(c("name", "avgGoalsAgainst", "avgGoalsFor")) %>% 
 
 ### Regular Season Goals by Division 
 
-The *Central* division has the lowest average goals for and the lowest average goals against. The *Pacific* division has the highest average goals for and the highest average goals against. 
+The **Central** division has the lowest average goals for and the lowest average goals against. The **Pacific** division has the highest average goals for and the highest average goals against. 
 
 The boxplots below show significant variation between teams within a division. This is emphasized by the superimposed scatter points. 
 
@@ -854,9 +870,9 @@ avgs <- totalsRegularActive %>%
 
 avgs %>% kable(col.names = c("Division", "Divison Avg Goals Against", "Division Avg Goals For"))
 
-g6 <- ggplot(totalsRegularActive, aes(x = division.name))
+g7 <- ggplot(totalsRegularActive, aes(x = division.name))
 
-g6 + 
+g7 + 
   geom_boxplot(aes(y = avgGoalsAgainst)) + 
   geom_point(aes( y = avgGoalsAgainst, 
                   color = division.name), 
@@ -866,7 +882,7 @@ g6 +
        y = "Average Goals Against", 
        color = "Division") 
 
-g6 + 
+g7 + 
   geom_boxplot(aes(y = avgGoalsFor)) + 
   geom_point(aes(y = avgGoalsFor, 
                  color = division.name), 
@@ -881,7 +897,7 @@ g6 +
 
 Six number summaries are calculated for three variables for for active teams in each division. All numbers are for the regular season. 
 
-One main that jumps out about these summaries is that the average goals for numbers and the average goals against number are so similar. This suggests that regular season hockey games tend to be close and competitive. This is the case in every division. This is confirmed by the fairly small variation in point percentage. 
+One thing that jumps out about these summaries is that average goals for and the average goals against are so similar. This suggests that regular season hockey games tend to be close and competitive. This is the case in every division. The competitiveness of the NHL is confirmed by the fairly small variation in point percentage. 
 
 ```{r Sums by Divison 1}
 # function that takes in division name and returns summary table

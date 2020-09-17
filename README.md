@@ -15,7 +15,6 @@ Joshua Burrows Project 1: The NHL API
   - [Exploratory Data Analysis](#exploratory-data-analysis)
       - [Wins and Penalty Minutes](#wins-and-penalty-minutes)
           - [Regular Season](#regular-season)
-      - [Wins and Penalty Minutes](#wins-and-penalty-minutes-1)
           - [Post Season](#post-season)
       - [Win/Loss Differential and Shots
         Differential](#winloss-differential-and-shots-differential)
@@ -941,9 +940,7 @@ g +
        caption = "Teams with at least 500 games")
 ```
 
-![](README_files/figure-gfm/Wins%20and%20Penalties-1.png)<!-- -->
-
-## Wins and Penalty Minutes
+![](README_files/figure-gfm/Wins%20and%20Penalties%20Regular-1.png)<!-- -->
 
 ### Post Season
 
@@ -956,7 +953,11 @@ Teams with less than 50 post season games were not considered.
 ``` r
 totalsPost <- totals %>% filter(gameTypeId == 3)
 
-totalsPost <- totalsPost %>% filter(gamesPlayed >= 50) %>% mutate(winPct = wins / gamesPlayed, penaltyAvg = penaltyMinutes / gamesPlayed)
+totalsPost <- 
+  totalsPost %>% 
+  filter(gamesPlayed >= 50) %>% 
+  mutate(winPct = wins / gamesPlayed, 
+         penaltyAvg = penaltyMinutes / gamesPlayed)
 
 corPost <- cor(totalsPost$winPct, totalsPost$penaltyAvg)
 
@@ -972,19 +973,19 @@ g2 +
        caption = "Teams with at least 50 games")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+![](README_files/figure-gfm/Wins%20and%20Penalties%20Post-1.png)<!-- -->
 
 ## Win/Loss Differential and Shots Differential
 
 ### Join and Calculate
 
-Below, a new table is created by joining data from the team.stats
+Below, a new table is created by joining data from the *team.stats*
 modifier with data from the unmodified stats endpoint. Then three new
 variables are calculated:
 
   - Win/Loss Differential: Wins - Losses  
   - Win/Loss Diff Indicator: Whether a team has a winning record  
-  - Shots Differential: Shots taken - shots allowed
+  - Shots Differential: Shots taken - Shots allowed
 
 <!-- end list -->
 
@@ -996,7 +997,10 @@ teams <- getNHL(API = "stats")
 
 teamValues <- inner_join(teams, values, by = c("name" = "team.name"))
 
-teamValues <- teamValues %>% mutate(WLDiff = stat.wins - stat.losses, shotDiff = stat.shotsPerGame - stat.shotsAllowed)
+teamValues <- 
+  teamValues %>% 
+  mutate(WLDiff = stat.wins - stat.losses, 
+         shotDiff = stat.shotsPerGame - stat.shotsAllowed)
 
 positive <- function(x){
   if(x > 0){
@@ -1027,18 +1031,19 @@ teamValues %>% select(c("name", "WLDiff", "shotDiff", "WLDiffIndicator")) %>% he
 
 ### Win/Loss Differential by Division and Conference
 
-Every team in the *Central* division is a winning team. In contrast, the
-*Atlantic* division has the worst winning team to losing team ratio.
+Every team in the **Central** division is a winning team. In contrast,
+the **Atlantic** division has the worst winning team to losing team
+ratio.
 
-The *Western* conference has a better winning team to losing team ratio
-than the *Eastern* conference.
+The **Western** conference has a better winning team to losing team
+ratio than the **Eastern** conference.
 
 Overall, the NHL has more winning teams than losing teams.
 
 This data is visualized in contingency tables and bar charts.
 
 ``` r
-table(teamValues$division.name, teamValues$WLDiffIndicator) %>% kable()
+table(teamValues$division.name, teamValues$WLDiffIndicator) %>% kable(caption = "Divisions")
 ```
 
 |              | 50/50 Team | Losing Team | Winning Team |
@@ -1048,14 +1053,18 @@ table(teamValues$division.name, teamValues$WLDiffIndicator) %>% kable()
 | Metropolitan |          0 |           1 |            7 |
 | Pacific      |          0 |           3 |            5 |
 
+Divisions
+
 ``` r
-table(teamValues$conference.name, teamValues$WLDiffIndicator) %>% kable()
+table(teamValues$conference.name, teamValues$WLDiffIndicator) %>% kable(caption = "Conferences")
 ```
 
 |         | 50/50 Team | Losing Team | Winning Team |
 | :------ | ---------: | ----------: | -----------: |
 | Eastern |          1 |           4 |           11 |
 | Western |          0 |           3 |           12 |
+
+Conferences
 
 ``` r
 g3 <- ggplot(teamValues, aes(x = WLDiffIndicator))
@@ -1115,10 +1124,28 @@ g5 +
   labs(title = "Win/Loss Differential by Shots Taken/Allowed Differential", 
        x = "Wins Minus Losses", 
        y = "Shots Taken Minus Shots Allowed", 
-       color = "Conference")
+       color = "Conference") +
+  coord_cartesian(xlim = c(-31, 31), ylim = c(-8, 7))
 ```
 
 ![](README_files/figure-gfm/Diffs4-1.png)<!-- -->
+
+``` r
+teamValuesNoOut <- teamValues %>% filter(WLDiff > -20)
+
+g6 <- ggplot(teamValuesNoOut, aes(x = WLDiff, y = shotDiff, color = conference.name)) 
+
+g6 + 
+  geom_point() + 
+  geom_smooth(method = lm) + 
+  labs(title = "Win/Loss Differential by Shots Taken/Allowed Differential", 
+       x = "Wins Minus Losses", 
+       y = "Shots Taken Minus Shots Allowed", 
+       color = "Conference") +
+  coord_cartesian(xlim = c(-31, 31), ylim = c(-8, 7))
+```
+
+![](README_files/figure-gfm/Diffs4-2.png)<!-- -->
 
 ## Goals Per Game
 
@@ -1161,8 +1188,8 @@ totalsRegularActive %>% select(c("name", "avgGoalsAgainst", "avgGoalsFor")) %>% 
 
 ### Regular Season Goals by Division
 
-The *Central* division has the lowest average goals for and the lowest
-average goals against. The *Pacific* division has the highest average
+The **Central** division has the lowest average goals for and the lowest
+average goals against. The **Pacific** division has the highest average
 goals for and the highest average goals against.
 
 The boxplots below show significant variation between teams within a
@@ -1187,9 +1214,9 @@ avgs %>% kable(col.names = c("Division", "Divison Avg Goals Against", "Division 
 | Pacific      |                     3.110 |                  3.063 |
 
 ``` r
-g6 <- ggplot(totalsRegularActive, aes(x = division.name))
+g7 <- ggplot(totalsRegularActive, aes(x = division.name))
 
-g6 + 
+g7 + 
   geom_boxplot(aes(y = avgGoalsAgainst)) + 
   geom_point(aes( y = avgGoalsAgainst, 
                   color = division.name), 
@@ -1203,7 +1230,7 @@ g6 +
 ![](README_files/figure-gfm/Avg%20Goals1-1.png)<!-- -->
 
 ``` r
-g6 + 
+g7 + 
   geom_boxplot(aes(y = avgGoalsFor)) + 
   geom_point(aes(y = avgGoalsFor, 
                  color = division.name), 
@@ -1218,8 +1245,8 @@ g6 +
 
 ## Regular Season Numeric Summaries by Division
 
-Six number summaries are calculated for three variables for the regular
-season for active teams in each division.
+Six number summaries are calculated for three variables for for active
+teams in each division. All numbers are for the regular season.
 
 One main that jumps out about these summaries is that the average goals
 for numbers and the average goals against number are so similar. This
@@ -1240,7 +1267,9 @@ divSum <- function(div){
   splitz <- 
     totalsRegularActive %>% 
     filter(division.name == div) %>% 
-    select(c("pointPctg", "avgGoalsAgainst", "avgGoalsFor")) %>% 
+    select(c("pointPctg", 
+             "avgGoalsAgainst", 
+             "avgGoalsFor")) %>% 
     drop_na()
   
   # get the summary statistics 
