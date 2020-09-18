@@ -1,5 +1,6 @@
 Joshua Burrows Project 1: The NHL API
 ================
+Last Modified 18 September 2020
 
   - [Components of the `getNHL()`
     Function](#components-of-the-getnhl-function)
@@ -78,8 +79,8 @@ getRecTable <- function(table){
 
 ### Filter Data
 
-The `filterTable()` filters records data by either franchise name or
-franchise id number.
+The `filterTable()` function filters records data by either franchise
+name or franchise id number.
 
 Because franchise name and franchise id number have different
 identifiers on different API endpoints, `filterTable()` includes
@@ -106,7 +107,7 @@ filterTable <- function(table, nameName = NULL, idNumName = NULL, name = NULL, i
   }
   
   if((!is.null(idNum) & is.null(idNumName))){
-    stop("is idNum is specified, idNumName must be specified")
+    stop("if idNum is specified, idNumName must be specified")
   }
   
   # filter 
@@ -129,7 +130,7 @@ filterTable <- function(table, nameName = NULL, idNumName = NULL, name = NULL, i
     } else{
         team <- table %>% filter(table[[idNumName]] == idNum)
         if(length(team[[idNumName]]) == 0){ 
-          stop("Not a valid team idNum")
+          stop("not a valid team idNum")
         } else{
             return(team)
           }
@@ -161,9 +162,9 @@ franchise <- function(name = NULL, idNum = NULL){
 # get franchise team totals
 teamTotals <- function(name = NULL, idNum = NULL){
   
-  teamTotals <- getRecTable("franchise-team-totals") 
+  totals <- getRecTable("franchise-team-totals") 
   
-  filterTable(teamTotals, nameName = "teamName", idNumName = "franchiseId", name, idNum) 
+  filterTable(totals, nameName = "teamName", idNumName = "franchiseId", name, idNum) 
   
 } 
 ```
@@ -203,12 +204,12 @@ skater <- function(name = NULL, idNum = NULL){
 
 ## The Stats API
 
-Now I will turn to the building block functions that are used to get
-data from the stats API.
+Now I will turn to the building block functions that are used to contact
+the stats API.
 
 ### Get Data
 
-`getNHL()` is able to query eight modifiers from the Teams endpoint of
+`getNHL()` is able to query eight modifiers from the teams endpoint of
 the stats API. The job of `getStatsTable()` is to grab the data from
 each of the eight modified endpoints. Its length is mainly due to
 checking for error conditions.
@@ -351,19 +352,20 @@ getStatsTable <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   full <- full[[2]] %>% as_tibble()
   
   return(full)
+  
 }
 ```
 
 ### Flatten
 
-Often, the Teams endpoint returns a list that contains other lists. When
+Often, the teams endpoint returns a list that contains other lists. When
 this happens, flattening is required. Flattening is the process of
 un-nesting these nested lists to return a more user friendly object.
 `teamStats()` does this job.
 
-The modifier called team.stats returns an object with so many
+The modifier called *team.stats* returns an object with so many
 sub-objects that flattening it all into one 2D table creates a confusing
-and unwieldy data frame. So `teamStats()` doesn’t try to do this.
+and unwieldy data frame. So `teamStats()` doesn’t try to do that.
 Instead, a list of data frames is returned.
 
 This is a long function, so check out the comments to keep your
@@ -392,13 +394,15 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
       roster[[i]]$name <- stats[["name"]][[i]]
     }
     
-    # flatten roster info
+    # flatten
     roster <- do.call(rbind, roster)
+    
+    # join and return
     statsFlatten <- 
       left_join(roster, 
                 stats, 
                 by = "name", 
-                suffix = c("roster", "base")) %>% 
+                suffix = c(".roster", ".base")) %>% 
       select(-c("roster.roster"))
     
     return(statsFlatten)
@@ -447,7 +451,10 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     
     # join flattened data with full data set 
     schedule <- 
-      left_join(stats, datesVert, by = "name", suffix = c(".main", ".nextGame")) %>% 
+      left_join(stats, 
+                datesVert, 
+                by = "name", 
+                suffix = c(".main", ".nextGame")) %>% 
       select(-c("nextGameSchedule.dates"))
     
     return(schedule) 
@@ -563,12 +570,12 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     # flatten 
     roster <- do.call(rbind, roster)
     
-    # combine and return 
+    # join and return 
     statsFlatten <- 
       left_join(roster, 
                 stats, 
                 by = "name", 
-                suffix = c("roster", "base")) %>% 
+                suffix = c(".roster", ".base")) %>% 
       select(-c("roster.roster"))
     
     return(statsFlatten)
@@ -576,7 +583,7 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
   
   # MODIFIER
   # teamId
-  # getStatsTable does all that is needed here 
+  # getStatsTable() does all that is needed here 
   if(modifier == "teamId"){
     return(stats) 
   }
@@ -607,8 +614,8 @@ API. It is a wrapper function that works by calling other functions.
       - idNum: filter by franchise id  
   - API: “stats”
       - modifier: the desired modifier  
-      - idNum: for the teamId modifier  
-      - seasonId: for the team.roster\&season modifier
+      - idNum: for the *teamId* modifier  
+      - seasonId: for the *team.roster\&season* modifier
 
 <!-- end list -->
 
@@ -660,7 +667,7 @@ getNHL <- function(API, recTable = NULL, name = NULL, idNum = NULL, modifier = N
       return(tab) 
     }
     
-    stop("recTable must be one of: franchise, franchise-team-totals, franchise-season-records, franchise-goalie-records, franchise-skater-records")
+    stop("recTable must be one of the following strings: franchise, franchise-team-totals, franchise-season-records, franchise-goalie-records, franchise-skater-records")
   
   }
   
@@ -669,6 +676,7 @@ getNHL <- function(API, recTable = NULL, name = NULL, idNum = NULL, modifier = N
    tab <- teamStats(modifier = modifier, seasonId = seasonId, idNum = idNum)
    return(tab)
   }
+  
 }
 ```
 
@@ -995,7 +1003,7 @@ values <- teamInfo[["statsValues"]]
 
 teams <- getNHL(API = "stats")
 
-teamValues <- inner_join(teams, values, by = c("name" = "team.name"))
+teamValues <- inner_join(teams, values, by = c("name" = "team.name"), suffix = c(".teams", ".values"))
 
 teamValues <- 
   teamValues %>% 
@@ -1113,7 +1121,9 @@ g4 +
 ### Shots Differential Vs Win/Loss Differential
 
 Unsurprisingly, there is a positive correlation between win/loss
-differential and shots differential.
+differential and shots differential. The slope of the regression line is
+steeper in the **Eastern** conference than the **Western** conference.
+This slope is not changed much by removing an outlier.
 
 ``` r
 g5 <- ggplot(teamValues, aes(x = WLDiff, y = shotDiff, color = conference.name)) 
@@ -1121,11 +1131,12 @@ g5 <- ggplot(teamValues, aes(x = WLDiff, y = shotDiff, color = conference.name))
 g5 + 
   geom_point() + 
   geom_smooth(method = lm) + 
-  labs(title = "Win/Loss Differential by Shots Taken/Allowed Differential", 
+  labs(title = "Shots Taken/Allowed Differential vs Win/Loss Differential", 
        x = "Wins Minus Losses", 
        y = "Shots Taken Minus Shots Allowed", 
-       color = "Conference") +
-  coord_cartesian(xlim = c(-31, 31), ylim = c(-8, 7))
+       color = "Conference", 
+       caption = "With Outlier") +
+  coord_cartesian(xlim = c(-31, 31), ylim = c(-8, 8))
 ```
 
 ![](README_files/figure-gfm/Diffs4-1.png)<!-- -->
@@ -1138,11 +1149,12 @@ g6 <- ggplot(teamValuesNoOut, aes(x = WLDiff, y = shotDiff, color = conference.n
 g6 + 
   geom_point() + 
   geom_smooth(method = lm) + 
-  labs(title = "Win/Loss Differential by Shots Taken/Allowed Differential", 
+  labs(title = "Shots Taken/Allowed Differential vs Win/Loss Differential ", 
        x = "Wins Minus Losses", 
        y = "Shots Taken Minus Shots Allowed", 
-       color = "Conference") +
-  coord_cartesian(xlim = c(-31, 31), ylim = c(-8, 7))
+       color = "Conference", 
+       caption = "Without Outlier") +
+  coord_cartesian(xlim = c(-31, 31), ylim = c(-8, 8))
 ```
 
 ![](README_files/figure-gfm/Diffs4-2.png)<!-- -->
@@ -1159,7 +1171,8 @@ totals data:
 
 The regular season team totals data is then joined with data from the
 base endpoint of the stats API. The result is a table with information
-about active teams.
+about active teams. Again, teams with less than 500 regular season games
+were not considered.
 
 ``` r
 totalsRegular <- 
@@ -1224,10 +1237,11 @@ g7 +
   labs(title = "Average Goals Against by Division", 
        x = "Division", 
        y = "Average Goals Against", 
-       color = "Division") 
+       color = "Division", 
+       caption = "Teams with at least 500 games") 
 ```
 
-![](README_files/figure-gfm/Avg%20Goals1-1.png)<!-- -->
+![](README_files/figure-gfm/Avg%20Goals-1.png)<!-- -->
 
 ``` r
 g7 + 
@@ -1238,21 +1252,23 @@ g7 +
   labs(title = "Average Goals For by Division", 
        x = "Division", 
        y = "Average Goals For", 
-       color = "Division")
+       color = "Division", 
+       caption = "Teams with at least 500 games")
 ```
 
-![](README_files/figure-gfm/Avg%20Goals1-2.png)<!-- -->
+![](README_files/figure-gfm/Avg%20Goals-2.png)<!-- -->
 
 ## Regular Season Numeric Summaries by Division
 
 Six number summaries are calculated for three variables for for active
-teams in each division. All numbers are for the regular season.
+teams in each division. All numbers are for the regular season. Again,
+teams with less than 500 games were not considered.
 
-One main that jumps out about these summaries is that the average goals
-for numbers and the average goals against number are so similar. This
-suggests that regular season hockey games tend to be close and
-competitive. This is the case in every division. This is confirmed by
-the fairly small variation in point percentage.
+One thing that jumps out about these summaries is that average goals for
+and the average goals against are so similar. This suggests that regular
+season hockey games tend to be close and competitive. This is the case
+in every division. The competitiveness of the NHL is confirmed by the
+fairly small variation in point percentage.
 
 ``` r
 # function that takes in division name and returns summary table
@@ -1288,6 +1304,7 @@ divSum <- function(div){
                         "Average Goals For"))
   
   return(statz)
+  
 }
 ```
 
