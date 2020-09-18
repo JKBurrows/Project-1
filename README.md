@@ -2,7 +2,7 @@ Joshua Burrows Project 1: The NHL API
 ================
 Last Modified 18 September 2020
 
-  - [Components of the `getNHL()`
+  - [Components of the getNHL()
     Function](#components-of-the-getnhl-function)
       - [The Records API](#the-records-api)
           - [Get Data](#get-data)
@@ -11,7 +11,7 @@ Last Modified 18 September 2020
       - [The Stats API](#the-stats-api)
           - [Get Data](#get-data-1)
           - [Flatten](#flatten)
-  - [Wrapper Function: `getNHL()`](#wrapper-function-getnhl)
+  - [Wrapper Function: getNHL()](#wrapper-function-getnhl)
       - [Examples](#examples)
   - [Exploratory Data Analysis](#exploratory-data-analysis)
       - [Wins and Penalty Minutes](#wins-and-penalty-minutes)
@@ -37,12 +37,12 @@ This vignette explains how to access and summarize the data from the
 National Hockey League’s APIs.
 
 A github repo containing the code for this vignette can be accessed
-[here](https://github.com/JKBurrows/Project-1).
+using the links at the top and bottom of this page.
 
 The following packages were used to create this vignette: `assertthat`,
 `knitr`, `tidyverse`, `rmarkdown`, `httr`, and `jsonlite`.
 
-# Components of the `getNHL()` Function
+# Components of the getNHL() Function
 
 The NHL has two separate APIs: records and stats. Both can be queried
 using the `getNHL()` function. This function is built from a few other
@@ -434,7 +434,10 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     
     # flatten datesNonNull
     for(i in 1:length(datesNonNull)){
-      datesNonNull[[i]] <- cbind(datesNonNull[[i]], datesNonNull[[i]][["games"]]) %>% select(-c("games")) 
+      datesNonNull[[i]] <- 
+        cbind(datesNonNull[[i]], 
+              datesNonNull[[i]][["games"]]) %>% 
+        select(-c("games")) 
       
       datesNonNull[[i]][["events"]] <- 
         datesNonNull[[i]][["events"]][[1]][1][[1]]
@@ -479,7 +482,10 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     
     # flatten datesNonNull
     for(i in 1:length(datesNonNull)){
-      datesNonNull[[i]] <- cbind(datesNonNull[[i]], datesNonNull[[i]][["games"]]) %>% select(-c("games")) 
+      datesNonNull[[i]] <- 
+        cbind(datesNonNull[[i]], 
+              datesNonNull[[i]][["games"]]) %>% 
+        select(-c("games")) 
       
       datesNonNull[[i]][["events"]] <- 
         datesNonNull[[i]][["events"]][[1]][1][[1]]
@@ -598,7 +604,7 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
 }
 ```
 
-# Wrapper Function: `getNHL()`
+# Wrapper Function: getNHL()
 
 Until now, we have been looking at functions that live behind the
 scenes. The star of the show is `getNHL()`.
@@ -1003,7 +1009,11 @@ values <- teamInfo[["statsValues"]]
 
 teams <- getNHL(API = "stats")
 
-teamValues <- inner_join(teams, values, by = c("name" = "team.name"), suffix = c(".teams", ".values"))
+teamValues <- 
+  inner_join(teams, 
+             values, 
+             by = c("name" = "team.name"), 
+             suffix = c(".teams", ".values"))
 
 teamValues <- 
   teamValues %>% 
