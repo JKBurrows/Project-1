@@ -471,7 +471,7 @@ teamStats <- function(modifier = NULL, seasonId = NULL, idNum = NULL){
     dates <- stats[["previousGameSchedule.dates"]]
     
     # create names column to track data by team
-    # create list of teams that have a next game scheduled 
+    # create list of teams that had a previous game 
     datesNonNull <- list()
     for(i in 1:length(dates)){
       if(!is.null(dates[[i]])){
@@ -1226,7 +1226,11 @@ avgs <- totalsRegularActive %>%
   summarize(divisionAvgGoalsAgainst = round(mean(avgGoalsAgainst, na.rm = TRUE), 3), 
             divisionAvgGoalsFor = round(mean(avgGoalsFor, na.rm = TRUE), 3))
 
-avgs %>% kable(col.names = c("Division", "Divison Avg Goals Against", "Division Avg Goals For"))
+avgs %>% 
+  kable(col.names = c("Division", 
+                      "Divison Avg Goals Against", 
+                      "Division Avg Goals For"), 
+        caption = "Teams with at least 500 games")
 ```
 
 | Division     | Divison Avg Goals Against | Division Avg Goals For |
@@ -1235,6 +1239,8 @@ avgs %>% kable(col.names = c("Division", "Divison Avg Goals Against", "Division 
 | Central      |                     2.814 |                  2.881 |
 | Metropolitan |                     3.055 |                  3.034 |
 | Pacific      |                     3.110 |                  3.063 |
+
+Teams with at least 500 games
 
 ``` r
 g7 <- ggplot(totalsRegularActive, aes(x = division.name))
@@ -1275,10 +1281,9 @@ teams in each division. All numbers are for the regular season. Again,
 teams with less than 500 games were not considered.
 
 One thing that jumps out about these summaries is that average goals for
-and the average goals against are so similar. This suggests that regular
-season hockey games tend to be close and competitive. This is the case
-in every division. The competitiveness of the NHL is confirmed by the
-fairly small variation in point percentage.
+and average goals against are so similar across divisions. This suggests
+that no one division is far and away better than the others. This is
+confirmed by the similarity in point percentage across divisions.
 
 ``` r
 # function that takes in division name and returns summary table
